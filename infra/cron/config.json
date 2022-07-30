@@ -1,0 +1,10 @@
+[{
+    "schedule":"@every 1m",
+    "command":"echo 'test' >> /home/docker/test.log"
+},{
+    "comment": "laravel schedule:run",
+    "schedule":"* * * * *",
+    "command": "php artisan schedule:run",
+    "project": "docker",
+    "container": "php"
+}]

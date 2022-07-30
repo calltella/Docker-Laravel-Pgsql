@@ -1,0 +1,84 @@
+version: '3.6'
+services:
+    laravel:
+        container_name: 'docker_php_1' # cron起動しなくなるので名前変えない
+        build: ./infra/php
+        environment:
+            TZ: 'Asia/Tokyo'
+            WEBROOT: '/var/www/html/public'
+            PHP_REDIS_SESSION_HOST: 'redis'
+            COMPOSERMIRROR: 'https://packagist.org'
+            NPMMIRROR: 'https://registry.npm.taobao.org'
+        ports:
+            - '${APP_PORT:-80}:80'
+        volumes:
+            - './laravel:/var/www/html'
+            - './infra/nginx/default.conf:/etc/nginx/conf.d/default.conf'
+            - './infra/nginx/logs:/var/log/nginx'
+            - './infra/php/php.ini:/usr/local/etc/php/php.ini'
+        depends_on:
+            - postgres
+        restart: '${DOCKER_RESTART}'
+    postgres:
+        container_name: postgres
+        image: groonga/pgroonga:latest
+        ports:
+            - 5432:5432
+        volumes:
+            - postgres_volume:/var/lib/postgresql/data
+            - ./export:/tmp
+        environment:
+            TZ: "Asia/Tokyo"
+            POSTGRES_PASSWORD: root
+            POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+        restart: '${DOCKER_RESTART}'
+    pgadmin4:
+        container_name: pgadmin4
+        image: dpage/pgadmin4:6.11
+        ports:
+            - 8080:80
+        volumes:
+            - pgadmin4_volume:/var/lib/pgadmin
+            - ./export/pgadmin4:/tmp/pgadmin4
+        environment:
+            PGADMIN_DEFAULT_EMAIL: '${PGADMIN_DEFAULT_EMAIL}'
+            PGADMIN_DEFAULT_PASSWORD: root
+        hostname: pgadmin4
+        depends_on:
+          - postgres
+    mysql:
+        container_name: 'docker_mysql'
+        image: mysql:8.0
+        ports:
+            - '3306:3306'
+        command:
+            mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+        environment:
+            TZ: 'Asia/Tokyo'
+            MYSQL_ROOT_PASSWORD: password
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        volumes:
+            - 'mysql_volume:/var/lib/mysql'
+            - './export:/var/lib/mysql-files'
+        restart: '${DOCKER_RESTART}'
+    cron:
+        container_name: 'docker_cron_1'
+        build: ./infra/cron
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        restart: '${DOCKER_RESTART}'
+networks:
+    default:
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 192.168.10.0/27
+volumes:
+    postgres_volume:
+    pgadmin4_volume:
+    mysql_volume:

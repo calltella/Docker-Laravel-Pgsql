@@ -1,5 +1,5 @@
 .env
-/laravel/*
+laravel/
 README_MEMO.md
 
 /node_modules

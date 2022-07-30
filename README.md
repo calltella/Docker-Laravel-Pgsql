@@ -24,7 +24,7 @@ $ git clone https://github.com/calltella/Docker-Laravel-Pgsql.git
 
 ### 環境変数コピー
 ```
-$ cd Docker-Laravel
+$ cd Docker-Laravel-Pgsql
 $ cp .env.sample .env
 ```
 ### Docker起動

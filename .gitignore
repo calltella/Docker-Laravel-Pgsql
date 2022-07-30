@@ -1,7 +1,6 @@
 .env
 /laravel/*
 README_MEMO.md
-default.conf
 
 /node_modules
 /public/hot

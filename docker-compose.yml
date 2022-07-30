@@ -2,7 +2,9 @@ version: '3.6'
 services:
     laravel:
         container_name: 'docker_php_1' # cron起動しなくなるので名前変えない
-        build: ./infra/php
+        build:
+            context: .
+            dockerfile: ./infra/php/Dockerfile
         environment:
             TZ: 'Asia/Tokyo'
             WEBROOT: '/var/www/html/public'

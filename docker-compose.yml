@@ -14,7 +14,6 @@ services:
         volumes:
             - './laravel:/var/www/html'
             - './infra/nginx/logs:/var/log/nginx'
-            - './infra/php/php.ini:/usr/local/etc/php/php.ini'
         depends_on:
             - postgres
         restart: '${DOCKER_RESTART}'

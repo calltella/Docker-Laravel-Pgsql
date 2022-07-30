@@ -1,6 +1,7 @@
 .env
 /laravel/*
 README_MEMO.md
+/nginx/default.conf
 
 /node_modules
 /public/hot

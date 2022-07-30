@@ -19,7 +19,7 @@ DockerでLaravelを手軽に使用出来る様に
 ### Git clone
 
 ```
-$ git clone https://github.com/calltella/Docker-Laravel.git
+$ git clone https://github.com/calltella/Docker-Laravel-Pgsql.git
 ```
 
 ### 環境変数コピー

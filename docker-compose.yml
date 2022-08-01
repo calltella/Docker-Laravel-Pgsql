@@ -15,7 +15,7 @@ services:
             - '${APP_PORT:-80}:80'
         volumes:
             - './laravel:/var/www/html'
-            - './infra/nginx/logs:/var/log/nginx'
+            - './infra/nginx/logs:/var/log/nginx' # nginxの動作確認用（不要なら削除）
         depends_on:
             - postgres
         restart: '${DOCKER_RESTART}'
@@ -26,7 +26,7 @@ services:
             - 5432:5432
         volumes:
             - postgres_volume:/var/lib/postgresql/data
-            - ./export:/tmp
+            - ./export:/tmp # ダンプファイルやバックアップ用
         environment:
             TZ: "Asia/Tokyo"
             POSTGRES_PASSWORD: root
@@ -46,7 +46,7 @@ services:
         hostname: pgadmin4
         depends_on:
           - postgres
-    mysql:
+    mysql: # mysqlからpgsqlのデータ移行用（不要なら削除）
         container_name: 'docker_mysql'
         image: mysql:8.0
         ports:
@@ -63,7 +63,7 @@ services:
             retries: 5
         volumes:
             - 'mysql_volume:/var/lib/mysql'
-            - './export:/var/lib/mysql-files'
+            - './export:/var/lib/mysql-files' # ダンプファイルやバックアップ用
         restart: '${DOCKER_RESTART}'
     cron:
         container_name: 'docker_cron_1'
@@ -77,8 +77,11 @@ networks:
         ipam:
             driver: default
             config:
-                - subnet: 192.168.10.0/27
+                - subnet: 192.168.10.0/27 # 範囲 192.168.10.0-192.168.10.31 デフォルト(172.17.0.0/16)
 volumes:
     postgres_volume:
+        name: docker-laravel-pgsql_postgres_volume
     pgadmin4_volume:
+        name: docker-laravel-pgsql_pgadmin4_volume
     mysql_volume:
+        name: docker-laravel-pgsql_mysql_volume

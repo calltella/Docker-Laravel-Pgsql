@@ -80,8 +80,5 @@ networks:
                 - subnet: 192.168.10.0/27 # 範囲 192.168.10.0-192.168.10.31 デフォルト(172.17.0.0/16)
 volumes:
     postgres_volume:
-        name: docker-laravel-pgsql_postgres_volume
     pgadmin4_volume:
-        name: docker-laravel-pgsql_pgadmin4_volume
     mysql_volume:
-        name: docker-laravel-pgsql_mysql_volume

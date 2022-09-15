@@ -1,10 +1,8 @@
-[{
-    "schedule":"@every 1m",
-    "command":"echo 'test' >> /home/docker/test.log"
-},{
-    "comment": "laravel schedule:run",
-    "schedule":"* * * * *",
+[
+  {
+    "comment": "laravel cron setting",
+    "schedule": "@every 1m",
     "command": "php artisan schedule:run",
-    "project": "docker",
-    "container": "php"
-}]
+    "container": "docker_php_1"
+  }
+]

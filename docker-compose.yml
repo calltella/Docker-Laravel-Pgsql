@@ -1,7 +1,7 @@
 version: '3.6'
 services:
     laravel:
-        container_name: 'docker_php_1' # cron起動しなくなるので名前変えない
+        container_name: 'docker_php_1' # 変更時はcron設定も変更
         build:
             context: .
             dockerfile: ./infra/php/Dockerfile

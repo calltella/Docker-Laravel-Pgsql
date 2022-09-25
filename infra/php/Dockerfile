@@ -1,4 +1,9 @@
 FROM tangramor/nginx-php8-fpm
+
+ENV USER_NAME=docker
+ENV USER_ID=1000
+ENV GROUP_ID=1000
+
 # https://github.com/tangramor/nginx-php8-fpm
 ENV TZ Asia/Tokyo
 
@@ -10,3 +15,8 @@ RUN apk add --no-cache --virtual .build-deps gcc g++ libc-dev make \
 COPY ./infra/nginx/*.conf /etc/nginx/conf.d/
 
 COPY ./infra/php/php.ini /usr/local/etc/php/php.ini
+
+# artisan コマンド使うときやcomposerやnpmつかう時に一般ユーザーないと困るので作成
+# コンテナ自体を一般ユーザーで稼働させるのは可能ではあるがイメージを1からつくらないといけないので面倒
+RUN addgroup -S -g "${GROUP_ID}" "${USER_NAME}" && \
+    adduser -u "${USER_ID}" -G "${USER_NAME}" -D "${USER_NAME}"

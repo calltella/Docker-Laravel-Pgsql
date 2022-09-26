@@ -39,7 +39,6 @@ services:
             - 8080:80
         volumes:
             - pgadmin4_volume:/var/lib/pgadmin
-            - ./export/pgadmin4:/tmp/pgadmin4
         environment:
             PGADMIN_DEFAULT_EMAIL: '${PGADMIN_DEFAULT_EMAIL}'
             PGADMIN_DEFAULT_PASSWORD: root

@@ -1,6 +1,7 @@
 FROM tangramor/nginx-php8-fpm
 
 ARG USER=docker
+ARG APKMIRROR="ap.edge.kernel.org"
 
 RUN apk --no-cache add \
     make        \
@@ -16,7 +17,7 @@ RUN apk --no-cache add \
     file        \
     patch       \
     sudo
-
+RUN echo ${APKMIRROR}
 # nginx.conf コピー
 COPY ./infra/nginx/*.conf /etc/nginx/conf.d/
 

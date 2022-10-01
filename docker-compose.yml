@@ -26,7 +26,7 @@ services:
             - 5432:5432
         volumes:
             - postgres_volume:/var/lib/postgresql/data
-            - ./export:/tmp # ダンプファイルやバックアップ用
+            - ./export/psql:/tmp # ダンプファイルやバックアップ用
         environment:
             TZ: "Asia/Tokyo"
             POSTGRES_PASSWORD: root
@@ -62,7 +62,7 @@ services:
             retries: 5
         volumes:
             - 'mysql_volume:/var/lib/mysql'
-            - './export:/var/lib/mysql-files' # ダンプファイルやバックアップ用
+            - './export/mysql:/var/lib/mysql-files' # ダンプファイルやバックアップ用
         restart: '${DOCKER_RESTART}'
     cron:
         container_name: 'docker_cron_1'

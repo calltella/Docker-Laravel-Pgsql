@@ -125,7 +125,9 @@ networks:
 
 volumes:
     postgres_volume:
+        external: true
     pgadmin4_volume:
     phpipam-db-data:
+        external: true
     phpipam-logo:
 

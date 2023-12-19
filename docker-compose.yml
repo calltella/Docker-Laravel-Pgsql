@@ -21,7 +21,7 @@ services:
         restart: '${DOCKER_RESTART}'
     postgres:
         container_name: postgres
-        image: groonga/pgroonga:latest
+        image: groonga/pgroonga:2.4.4-alpine-14
         ports:
             - 5432:5432
         volumes:

@@ -1,4 +1,4 @@
-FROM tangramor/nginx-php8-fpm
+FROM tangramor/nginx-php8-fpm:php8.2.12_node21.1.0
 
 ENV USER_NAME=docker
 ENV USER_ID=1000

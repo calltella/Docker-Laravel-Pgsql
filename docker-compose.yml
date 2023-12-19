@@ -35,7 +35,7 @@ services:
         restart: '${DOCKER_RESTART}'
     pgadmin4:
         container_name: pgadmin4
-        image: dpage/pgadmin4:latest
+        image: dpage/pgadmin4:8.1
         ports:
             - 8080:80
         volumes:
@@ -45,8 +45,6 @@ services:
             PGADMIN_DEFAULT_EMAIL: '${PGADMIN_DEFAULT_EMAIL}'
             PGADMIN_DEFAULT_PASSWORD: root
         hostname: pgadmin4
-        deploy:
-          replicas: '${PGADMIN4_CONTINER_START}'
         depends_on:
           - postgres
     cron:
@@ -55,63 +53,6 @@ services:
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
         restart: '${DOCKER_RESTART}'
-    phpipam-web:
-        image: phpipam/phpipam-www:1.5x
-        ports:
-            - "8000:80"
-        environment:
-            - TZ=Asia/Tokyo
-            - IPAM_DATABASE_HOST=phpipam-mariadb
-            - IPAM_DATABASE_PASS=phpipam
-            - IPAM_DATABASE_WEBHOST=%
-        restart: '${DOCKER_RESTART}'
-        volumes:
-            - phpipam-logo:/phpipam/css/images/logo
-        depends_on:
-            - phpipam-mariadb
-
-    phpipam-cron:
-        image: phpipam/phpipam-cron:1.5x
-        environment:
-            - TZ=Asia/Tokyo
-            - IPAM_DATABASE_HOST=phpipam-mariadb
-            - IPAM_DATABASE_PASS=phpipam
-            - SCAN_INTERVAL=1h
-        restart: '${DOCKER_RESTART}'
-        depends_on:
-            - phpipam-mariadb
-
-    phpipam-mariadb:
-        image: mariadb:10.6
-        environment:
-            - MYSQL_ROOT_PASSWORD=pwd
-            - MYSQL_DATABASE=test
-            - MYSQL_USER=user
-            - MYSQL_PASSWORD=pwd
-        restart: '${DOCKER_RESTART}'
-        deploy:
-            resources:
-                limits:
-                    memory: 512M   # メモリの制限を設定
-                reservations:
-                    memory: 256M   # メモリの予約を設定
-        volumes:
-            - phpipam-db-data:/var/lib/mysql
-    phpipam-phpmyadmin:
-        image: phpmyadmin/phpmyadmin
-        depends_on:
-            - phpipam-mariadb
-        environment:
-            - PMA_ARBITRARY=1
-            - PMA_HOSTS=phpipam-mariadb
-            - PMA_USER=root
-            - PMA_PASSWORD=pwd
-        ports:
-            - "3000:80"
-        deploy:
-            replicas: '${PHPMYADMIN_CONTINER_START}'
-        volumes:
-            - ./docker/phpmyadmin/sessions:/sessions
 networks:
     default:
         driver: bridge
@@ -119,15 +60,7 @@ networks:
             driver: default
             config:
                 - subnet: 192.168.10.0/27
-                # - subnet: 192.168.10.32/27
-                # - subnet: 192.168.10.64/27
-                # - subnet: 192.168.10.96/27
-
 volumes:
     postgres_volume:
-        external: true
     pgadmin4_volume:
-    phpipam-db-data:
-        external: true
-    phpipam-logo:
 

@@ -1,2 +1,5 @@
 .env
+env.sh
 /laravel
+workspace.code-workspace
+

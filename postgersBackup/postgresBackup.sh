@@ -8,7 +8,7 @@ DATE=`date '+%Y%m%d-%H%M%S'`
 
 #
 # SAVEPATH='/home/ec2-user/Docker-Laravel-Pgsql/postgersBackup/back/'
-SAVEPATH='/home/ec2-user/apline-laravel/storage/app/backup/'
+SAVEPATH='/home/ec2-user/Docker-Laravel-Pgsql/export/DailyBackup/'
 #
 PREFIX='production-dbdump-'
 

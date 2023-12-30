@@ -1,7 +1,7 @@
 version: '3.6'
 services:
     laravel:
-        container_name: 'docker_php_1' # 変更時はcron設定も変更
+        container_name: 'docker_php_1' # cron起動しなくなるので名前変えない
         build:
             context: .
             dockerfile: ./infra/php/Dockerfile
@@ -14,8 +14,9 @@ services:
         ports:
             - '${APP_PORT:-80}:80'
         volumes:
+            - ./export:/tmp
             - './laravel:/var/www/html'
-            - './infra/nginx/logs:/var/log/nginx' # nginxの動作確認用（不要なら削除）
+            - './infra/nginx/logs:/var/log/nginx'
         depends_on:
             - postgres
         restart: '${DOCKER_RESTART}'

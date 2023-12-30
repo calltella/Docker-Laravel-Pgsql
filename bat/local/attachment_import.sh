@@ -7,7 +7,7 @@ set -e
 sudo chown ec2-user -R ~/Docker-Laravel-Pgsql
 
 # 本番環境の添付ファイル群を取得
-ssh sailpreserver20 ~/Docker-Laravel-Script/production_attachment_import.sh # 本番環境の添付ファイルをZIP圧縮
+ssh sailpreserver20 ~/Docker-Laravel-Pgsql/bat/production/production_attachment_import.sh # 本番環境の添付ファイルをZIP圧縮
 
 # 本番環境からファイルをコピー
 scp sailpreserver20:/home/ec2-user/Docker-Laravel-Pgsql/export/archive2023.zip /home/ec2-user/Docker-Laravel-Pgsql/export/

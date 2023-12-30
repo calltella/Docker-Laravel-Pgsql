@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 
+# 本番環境でのみ起動
 PERIOD='+3'
 
 # 
@@ -8,7 +8,7 @@ DATE=`date '+%Y%m%d-%H%M%S'`
 
 # 
 # SAVEPATH='/home/ec2-user/Docker-Laravel-Pgsql/postgersBackup/back/'
-SAVEPATH='/home/ec2-user/apline_laravel9/storage/app/backup/'
+SAVEPATH='/home/ec2-user/Docker-Laravel-Pgsql/export/DailyBackup/'
 # 
 PREFIX='production-dbdump-'
 

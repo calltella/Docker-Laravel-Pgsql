@@ -10,15 +10,30 @@
 
 set -e
 
+CONTAINER_NAME="postgres"  # コンテナの名前を指定してください
+
+# コンテナのIDを取得
+CONTAINER_ID=$(docker ps -q --filter name=$CONTAINER_NAME)
+
+# コンテナが起動しているか確認
+if [ -z "$CONTAINER_ID" ]; then
+  echo "Container $CONTAINER_NAME is not running."
+  exit 1  # 終了コード 1 でスクリプトを終了
+else
+  echo "Container $CONTAINER_NAME is running with ID: $CONTAINER_ID"
+fi
+
+# カレントディレクトリを変更
 cd /home/ec2-user/Docker-Laravel-Pgsql/export/psql
 
 # 不要なファイルを削除
-cd ~/Docker-Laravel-Pgsql/export/psql && find ~/Docker-Laravel-Pgsql/export/psql -name "production*" -type f -exec rm -f {} \;
+find /home/ec2-user/Docker-Laravel-Pgsql/export/psql -name "production-dbdump-*.zip" -type f -exec rm -f {} \;
 
 # 本番環境からファイルをコピー
-scp sailpreserver20:/home/ec2-user/apline-laravel/storage/app/backup/production-dbdump-*.zip /home/ec2-user/Docker-Laravel-Pgsql/export/psql
+scp sailpreserver20:/home/ec2-user/Docker-Laravel-Pgsql/export/DailyBackup/production-dbdump-*.zip /home/ec2-user/Docker-Laravel-Pgsql/export/psql
 
-ZIP_FILE=$(find . -type f -name *`date +%Y%m%d --date '1 day ago'`*zip)
+
+ZIP_FILE=$(find . -type f -name "*$(date +%Y%m%d --date '1 day ago')*zip")
 echo $ZIP_FILE
 unzip -P 9G7V94%n $ZIP_FILE
 rm $ZIP_FILE
@@ -26,18 +41,23 @@ rm $ZIP_FILE
 ARCHIVE=$(find . -type f -name *`date +%Y%m%d --date '1 day ago'`*)
 echo $ARCHIVE
 
-
-#docker exec docker_php_1 bash -c "chown -R nginx:nginx /var/www/html/storage/app/apline/2023"
+# バックアップを本番環境のPostgreSQLにリストア
 docker exec postgres bash -c "cd /tmp/psql && psql -U postgres -f $ARCHIVE -d production"
 
-TABLE=poshelp_desk
-docker exec postgres bash -c "cd /tmp && pg_dump -c --if-exists -U postgres -t $TABLE production > production_$TABLE.dump"
-docker exec postgres bash -c "cd /tmp && psql -U postgres -d development < production_$TABLE.dump"
+# 特定のテーブルをdevelopmentデータベースにコピー
+copy_table_to_development() {
+    TABLE=$1
+    docker exec postgres bash -c "cd /tmp && pg_dump -c --if-exists -U postgres -t $TABLE production > production_$TABLE.dump"
+    docker exec postgres bash -c "cd /tmp && psql -U postgres -d development < production_$TABLE.dump"
+}
 
-TABLE=apline_base_model
-docker exec postgres bash -c "cd /tmp && pg_dump -c --if-exists -U postgres -t $TABLE production > production_$TABLE.dump"
-docker exec postgres bash -c "cd /tmp && psql -U postgres -d development < production_$TABLE.dump"
+copy_table_to_development "poshelp_desk"
+copy_table_to_development "apline_base_model"
+copy_table_to_development "apline_file_store"
 
-TABLE=apline_file_store
-docker exec postgres bash -c "cd /tmp && pg_dump -c --if-exists -U postgres -t $TABLE production > production_$TABLE.dump"
-docker exec postgres bash -c "cd /tmp && psql -U postgres -d development < production_$TABLE.dump"
+# phpipamテーブルコピー
+copy_table_to_development "phpipam_address_history"
+copy_table_to_development "phpipam_subnet_table"
+
+
+

@@ -20,7 +20,8 @@ if [ ! -d "2023/" ]; then
     unzip archive2023.zip > /dev/null
     echo "exec unzip"
     docker exec docker_php_1 bash -c "rm -rf /var/www/html/storage/app/apline/2023"
-    docker exec docker_php_1 bash -c "mv /tmp/2023 /var/www/html/storage/app/apline/"
+    docker exec docker_php_1 bash -c "rm -f /home/export/archive2023.zip"
+    docker exec docker_php_1 bash -c "mv /home/export/2023 /var/www/html/storage/app/apline/"
     echo "attachfile moved"
 fi
 

@@ -27,7 +27,7 @@ services:
             - 5432:5432
         volumes:
             - postgres_volume:/var/lib/postgresql/data
-            - ./export:/tmp
+            - ./export/pgsql:/tmp/pgsql
         environment:
             TZ: "Asia/Tokyo"
             POSTGRES_PASSWORD: root
@@ -35,7 +35,7 @@ services:
         restart: '${DOCKER_RESTART}'
     pgadmin4:
         container_name: pgadmin4
-        image: dpage/pgadmin4:8.1
+        image: dpage/pgadmin4:8.2
         ports:
             - 8080:80
         volumes:

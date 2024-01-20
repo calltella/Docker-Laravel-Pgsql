@@ -42,13 +42,13 @@ ARCHIVE=$(find . -type f -name *`date +%Y%m%d --date '1 day ago'`*)
 echo $ARCHIVE
 
 # バックアップを本番環境のPostgreSQLにリストア
-docker exec postgres bash -c "cd /tmp/psql && psql -U postgres -f $ARCHIVE -d production"
+docker exec postgres bash -c "psql -U postgres -f /tmp/pgsql/$ARCHIVE -d production"
 
 # 特定のテーブルをdevelopmentデータベースにコピー
 copy_table_to_development() {
     TABLE=$1
-    docker exec postgres bash -c "cd /tmp && pg_dump -c --if-exists -U postgres -t $TABLE production > production_$TABLE.dump"
-    docker exec postgres bash -c "cd /tmp && psql -U postgres -d development < production_$TABLE.dump"
+    docker exec postgres bash -c "pg_dump -c --if-exists -U postgres -t $TABLE production > /tmp/pgsql/production_$TABLE.dump"
+    docker exec postgres bash -c "psql -U postgres -d development < /tmp/pgsql/production_$TABLE.dump"
 }
 
 copy_table_to_development "poshelp_desk"
@@ -59,5 +59,5 @@ copy_table_to_development "apline_file_store"
 copy_table_to_development "phpipam_address_history"
 copy_table_to_development "phpipam_subnet_table"
 
-
-
+docker exec postgres bash -c "rm -f /tmp/pgsql/*.dump"
+docker exec postgres bash -c "rm -f /tmp/pgsql/$ARCHIVE"

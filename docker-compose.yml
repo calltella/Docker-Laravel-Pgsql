@@ -35,7 +35,7 @@ services:
         restart: '${DOCKER_RESTART}'
     pgadmin4:
         container_name: pgadmin4
-        image: dpage/pgadmin4:8.1
+        image: dpage/pgadmin4:8.2
         ports:
             - 8080:80
         volumes:

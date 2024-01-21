@@ -20,6 +20,9 @@ services:
         depends_on:
             - postgres
         restart: '${DOCKER_RESTART}'
+        networks:
+            - default
+            - phpipam-network
     postgres:
         container_name: postgres
         image: groonga/pgroonga:2.4.4-alpine-14
@@ -60,6 +63,8 @@ networks:
             driver: default
             config:
                 - subnet: 192.168.10.0/27
+    phpipam-network:
+         external: true
 volumes:
     postgres_volume:
     pgadmin4_volume:

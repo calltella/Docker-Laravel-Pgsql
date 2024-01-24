@@ -10,38 +10,39 @@
 
 set -e
 
-CONTAINER_NAME="postgres"  # コンテナの名前を指定してください
+# envファイルから環境変数を読込
+source ../../.env
 
 # コンテナのIDを取得
-CONTAINER_ID=$(docker ps -q --filter name=$CONTAINER_NAME)
+CONTAINER_ID=$(docker ps -q --filter name=$DATABASE_CONTAINER_NAME)
 
 # コンテナが起動しているか確認
 if [ -z "$CONTAINER_ID" ]; then
-  echo "Container $CONTAINER_NAME is not running."
+  echo "Container $DATABASE_CONTAINER_NAME is not running."
   exit 1  # 終了コード 1 でスクリプトを終了
 else
-  echo "Container $CONTAINER_NAME is running with ID: $CONTAINER_ID"
+  echo "Container $DATABASE_CONTAINER_NAME is running with ID: $CONTAINER_ID"
 fi
 
 # カレントディレクトリを変更
-cd /home/ec2-user/Docker-Laravel-Pgsql/export/psql
+cd /home/ec2-user/Docker-Laravel-Pgsql/export/pgsql
 
 # 不要なファイルを削除
-find /home/ec2-user/Docker-Laravel-Pgsql/export/psql -name "production-dbdump-*.zip" -type f -exec rm -f {} \;
+find /home/ec2-user/Docker-Laravel-Pgsql/export/pgsql -name "production-dbdump-*.zip" -type f -exec rm -f {} \;
 
 # 本番環境からファイルをコピー
-scp sailpreserver20:/home/ec2-user/Docker-Laravel-Pgsql/export/DailyBackup/production-dbdump-*.zip /home/ec2-user/Docker-Laravel-Pgsql/export/psql
+scp sailpreserver20:/home/ec2-user/Docker-Laravel-Pgsql/export/DailyBackup/production-dbdump-*.zip /home/ec2-user/Docker-Laravel-Pgsql/export/pgsql
 
 
 ZIP_FILE=$(find . -type f -name "*$(date +%Y%m%d --date '1 day ago')*zip")
 echo $ZIP_FILE
-unzip -P 9G7V94%n $ZIP_FILE
+unzip -P $PRODUCTION_ZIPFILE_PASSWORD $ZIP_FILE
 rm $ZIP_FILE
 
 ARCHIVE=$(find . -type f -name *`date +%Y%m%d --date '1 day ago'`*)
 echo $ARCHIVE
 
-# バックアップを本番環境のPostgreSQLにリストア
+# バックアップを開発環境のPostgreSQLにリストア
 docker exec postgres bash -c "psql -U postgres -f /tmp/pgsql/$ARCHIVE -d production"
 
 # 特定のテーブルをdevelopmentデータベースにコピー
@@ -56,8 +57,8 @@ copy_table_to_development "apline_base_model"
 copy_table_to_development "apline_file_store"
 
 # phpipamテーブルコピー
-copy_table_to_development "phpipam_address_history"
 copy_table_to_development "phpipam_subnet_table"
 
 docker exec postgres bash -c "rm -f /tmp/pgsql/*.dump"
+docker exec postgres bash -c "rm -f /tmp/pgsql/*.zip"
 docker exec postgres bash -c "rm -f /tmp/pgsql/$ARCHIVE"

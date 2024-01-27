@@ -9,6 +9,7 @@ DATE=`date '+%Y%m%d-%H%M%S'`
 #
 # SAVEPATH='/home/ec2-user/Docker-Laravel-Pgsql/postgersBackup/back/'
 SAVEPATH='/home/ec2-user/Docker-Laravel-Pgsql/export/DailyBackup/'
+UPLOADPATH='/home/ec2-user/Docker-Laravel-Pgsql/laravel/storage/app/backup/'
 #
 PREFIX='production-dbdump-'
 
@@ -25,3 +26,5 @@ zip --junk-paths --encrypt --password 9G7V94%n $SAVEPATH$PREFIX$DATE$EXT $SAVEPA
 #
 find $SAVEPATH -name $PREFIX$DATE -type f -exec rm -f {} \;
 find $SAVEPATH -type f -daystart -mtime $PERIOD -exec rm {} \;
+
+cp $SAVEPATH$PREFIX$DATE$EXT $UPLOADPATH$PREFIX$DATE$EXT

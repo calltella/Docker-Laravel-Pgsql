@@ -11,7 +11,7 @@
 set -e
 
 # envファイルから環境変数を読込
-source ../../.env
+export $(grep -v '^#' ../../.env | xargs)
 
 # コンテナのIDを取得
 CONTAINER_ID=$(docker ps -q --filter name=$DATABASE_CONTAINER_NAME)

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Dockerが起動している事が前提
 # 毎日１２時に起動
@@ -11,7 +11,7 @@
 set -e
 
 # envファイルから環境変数を読込
-export $(grep -v '^#' ../../.env | xargs)
+source ../../.env
 
 # コンテナのIDを取得
 CONTAINER_ID=$(docker ps -q --filter name=$DATABASE_CONTAINER_NAME)
@@ -45,7 +45,7 @@ echo $ARCHIVE
 # バックアップを開発環境のPostgreSQLにリストア
 docker exec postgres bash -c "psql -U postgres -f /tmp/pgsql/$ARCHIVE -d production"
 
-# 特定のテーブルをdevelopmentデータベースにコピー
+# table development database copy
 copy_table_to_development() {
     TABLE=$1
     docker exec postgres bash -c "pg_dump -c --if-exists -U postgres -t $TABLE production > /tmp/pgsql/production_$TABLE.dump"

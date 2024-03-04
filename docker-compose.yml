@@ -40,7 +40,7 @@ services:
         container_name: pgadmin4
         image: dpage/pgadmin4:8.3
         ports:
-            - 8080:80
+            - '${PG_PORT:-8080}:80'
         volumes:
             - docker-laravel-pgsql_pgadmin4_volume:/var/lib/pgadmin
             - ./export/pgadmin4:/tmp/pgadmin4

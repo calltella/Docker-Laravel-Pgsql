@@ -10,8 +10,11 @@
 
 set -e
 
+USER_DIRECTORY=~
+cd "${USER_DIRECTORY}/Docker-Laravel-Pgsql"
+
 # envファイルから環境変数を読込
-source ../../.env
+source .env
 
 # コンテナのIDを取得
 CONTAINER_ID=$(docker ps -q --filter name=$DATABASE_CONTAINER_NAME)

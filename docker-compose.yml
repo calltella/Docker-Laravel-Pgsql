@@ -29,7 +29,7 @@ services:
         ports:
             - 5432:5432
         volumes:
-            - postgres_volume:/var/lib/postgresql/data
+            - docker-laravel-pgsql_postgres_volume:/var/lib/postgresql/data
             - ./export/pgsql:/tmp/pgsql
         environment:
             TZ: "Asia/Tokyo"
@@ -42,7 +42,7 @@ services:
         ports:
             - 8080:80
         volumes:
-            - pgadmin4_volume:/var/lib/pgadmin
+            - docker-laravel-pgsql_pgadmin4_volume:/var/lib/pgadmin
             - ./export/pgadmin4:/tmp/pgadmin4
         environment:
             PGADMIN_DEFAULT_EMAIL: '${PGADMIN_DEFAULT_EMAIL}'
@@ -66,6 +66,8 @@ networks:
     phpipam-network:
          external: true
 volumes:
-    postgres_volume:
-    pgadmin4_volume:
+    docker-laravel-pgsql_postgres_volume:
+        external: true
+    docker-laravel-pgsql_pgadmin4_volume:
+        external: true
 

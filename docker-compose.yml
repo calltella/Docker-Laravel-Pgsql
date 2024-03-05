@@ -1,7 +1,7 @@
 version: '3.6'
 services:
     laravel:
-        container_name: 'docker_php_1' # cron起動しなくなるので名前変えない
+        container_name: 'docker_php_1' # ./infra/cron/config.json
         build:
             context: .
             dockerfile: ./infra/php/Dockerfile
@@ -25,7 +25,7 @@ services:
         ports:
             - 5432:5432
         volumes:
-            - postgres_volume:/var/lib/postgresql/data
+            - docker-laravel-pgsql_postgres_volume:/var/lib/postgresql/data
             - ./export:/tmp # ダンプファイルやバックアップ用
         environment:
             TZ: "Asia/Tokyo"
@@ -45,5 +45,8 @@ networks:
             driver: default
             config:
                 - subnet: 192.168.10.0/27 # 範囲 192.168.10.0-192.168.10.31 デフォルト(172.17.0.0/16)
+    phpipam-network:
+        external: true
 volumes:
-    postgres_volume:
+    docker-laravel-pgsql_postgres_volume:
+        external: true

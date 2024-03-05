@@ -1,30 +1,40 @@
 #!/bin/bash
 
-#
-PERIOD='+3'
 
-#
-DATE=`date '+%Y%m%d-%H%M%S'`
+# ユーザーディレクトリを取得
+USER_DIRECTORY=~
 
-#
-# SAVEPATH='/home/ec2-user/Docker-Laravel-Pgsql/postgersBackup/back/'
-SAVEPATH='/home/ec2-user/Docker-Laravel-Pgsql/export/DailyBackup/'
-UPLOADPATH='/home/ec2-user/Docker-Laravel-Pgsql/laravel/storage/app/backup/'
-#
-PREFIX='production-dbdump-'
+# envファイルから環境変数を読込
+source "${USER_DIRECTORY}/Docker-Laravel-Pgsql/.env"
 
-#
-EXT='.zip'
+# コンテナIDを取得
+CONTAINER_ID=$(docker ps -q --filter name="${DATABASE_CONTAINER_NAME}")
 
-#
-CONTENERNAME='postgres'
+# コンテナが起動しているか確認
+if [ -z "$CONTAINER_ID" ]; then
+  echo "Container $DATABASE_CONTAINER_NAME is not running."
+  exit 1  # 終了コード 1 でスクリプトを終了
+else
+  echo "Container $DATABASE_CONTAINER_NAME is running with ID: $CONTAINER_ID"
+fi
 
-#
-#docker exec $CONTENERNAME pg_dumpall -U postgres > $SAVEPATH$PREFIX$DATE$EXT
-docker exec $CONTENERNAME pg_dump -c --if-exists -U postgres production > $SAVEPATH$PREFIX$DATE
-zip --junk-paths --encrypt --password 9G7V94%n $SAVEPATH$PREFIX$DATE$EXT $SAVEPATH$PREFIX$DATE
-#
-find $SAVEPATH -name $PREFIX$DATE -type f -exec rm -f {} \;
-find $SAVEPATH -type f -daystart -mtime $PERIOD -exec rm {} \;
 
-cp $SAVEPATH$PREFIX$DATE$EXT $UPLOADPATH$PREFIX$DATE$EXT
+# 日付と時間をファイルネームに
+CURRENT_DATE=$(date +'%Y%m%d-%H%M%S')
+
+# セーブパスの結合
+SAVEPATH="${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/DailyBackup"
+
+# ファイルネームを作成
+SAVEFILE="production-dbdump-${CURRENT_DATE}"
+
+# データベースをダンプ
+# pg_dumpがファイルはバイナリファイルなので圧縮できない
+docker exec $CONTAINER_ID bash -c 'set PGPASSWORD="${PGDUMP_PASSWORD}"'
+docker exec $CONTAINER_ID bash -c "/usr/local/bin/pg_dump -U postgres -c --if-exists -d production -f /tmp/DailyBackup/${SAVEFILE}.sql"
+
+# 過去３日以上経過したファイルは削除
+sudo find $SAVEPATH -type f -daystart -mtime +3 -exec rm {} \;
+
+
+

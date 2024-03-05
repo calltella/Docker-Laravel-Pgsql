@@ -10,11 +10,21 @@
 
 set -e
 
+# コマンドライン引数の取得
+arg1=$1
+
+# 引数がなかった場合は今年をセット
+if [ -z "$arg1" ]; then
+  BACKUP_DATE=$(date -d 'yesterday' '+%Y%m%d')
+else
+  BACKUP_DATE=$arg1
+fi
+
+# ユーザーディレクトリを取得
 USER_DIRECTORY=~
-cd "${USER_DIRECTORY}/Docker-Laravel-Pgsql"
 
 # envファイルから環境変数を読込
-source .env
+source "${USER_DIRECTORY}/Docker-Laravel-Pgsql/.env"
 
 # コンテナのIDを取得
 CONTAINER_ID=$(docker ps -q --filter name=$DATABASE_CONTAINER_NAME)
@@ -27,32 +37,32 @@ else
   echo "Container $DATABASE_CONTAINER_NAME is running with ID: $CONTAINER_ID"
 fi
 
-# カレントディレクトリを変更
-cd /home/ec2-user/Docker-Laravel-Pgsql/export/pgsql
+# バックアップファイルを配置するディレクトリ
+BACKUP_DIRECTORY="${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/pgsql"
+
+# ディレクトリが存在しない場合は作成
+if [ ! -d "$BACKUP_DIRECTORY" ]; then
+    mkdir -p "$BACKUP_DIRECTORY"
+    echo "Directory created: $BACKUP_DIRECTORY"
+fi
 
 # 不要なファイルを削除
-find /home/ec2-user/Docker-Laravel-Pgsql/export/pgsql -name "production-dbdump-*.zip" -type f -exec rm -f {} \;
+find "${BACKUP_DIRECTORY}" -name "production-dbdump-*.zip" -type f -exec rm -f {} \;
 
 # 本番環境からファイルをコピー
-scp sailpreserver20:/home/ec2-user/Docker-Laravel-Pgsql/export/DailyBackup/production-dbdump-*.zip /home/ec2-user/Docker-Laravel-Pgsql/export/pgsql
+scp "preserver30:${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/DailyBackup/production-dbdump-*.sql" "${BACKUP_DIRECTORY}"
 
+# 昨日日付のファイルを選択
+BACKUP_FILE=$(find "${BACKUP_DIRECTORY}" -type f -name "*${BACKUP_DATE}*" -exec basename {} \;)
 
-ZIP_FILE=$(find . -type f -name "*$(date +%Y%m%d --date '1 day ago')*zip")
-echo $ZIP_FILE
-unzip -P $PRODUCTION_ZIPFILE_PASSWORD $ZIP_FILE
-rm $ZIP_FILE
-
-ARCHIVE=$(find . -type f -name *`date +%Y%m%d --date '1 day ago'`*)
-echo $ARCHIVE
-
-# バックアップを開発環境のPostgreSQLにリストア
-docker exec postgres bash -c "psql -U postgres -f /tmp/pgsql/$ARCHIVE -d production"
+# バックアップファイルをレストア
+docker exec $CONTAINER_ID bash -c "psql -U postgres -d production -f /tmp/pgsql/${BACKUP_FILE}"
 
 # table development database copy
 copy_table_to_development() {
     TABLE=$1
-    docker exec postgres bash -c "pg_dump -c --if-exists -U postgres -t $TABLE production > /tmp/pgsql/production_$TABLE.dump"
-    docker exec postgres bash -c "psql -U postgres -d development < /tmp/pgsql/production_$TABLE.dump"
+    docker exec $CONTAINER_ID bash -c "pg_dump -c --if-exists -U postgres -t $TABLE production > /tmp/pgsql/production_$TABLE.dump"
+    docker exec $CONTAINER_ID bash -c "psql -U postgres -d development < /tmp/pgsql/production_$TABLE.dump"
 }
 
 copy_table_to_development "poshelp_desk"
@@ -62,6 +72,8 @@ copy_table_to_development "apline_file_store"
 # phpipamテーブルコピー
 copy_table_to_development "phpipam_subnet_table"
 
-docker exec postgres bash -c "rm -f /tmp/pgsql/*.dump"
-docker exec postgres bash -c "rm -f /tmp/pgsql/*.zip"
-docker exec postgres bash -c "rm -f /tmp/pgsql/$ARCHIVE"
+# 不要なファイルを削除
+docker exec $CONTAINER_ID bash -c "rm -f /tmp/pgsql/*.dump"
+
+
+

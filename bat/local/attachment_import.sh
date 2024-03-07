@@ -60,7 +60,7 @@ if [ ! -d "${CURRENT_YEAR}/" ]; then
 fi
 
 # 権限の変更
-docker exec $CONTAINER_ID bash -c "chown -R nginx:nginx /var/www/html/storage/app/apline/${CURRENT_YEAR}"
+docker exec $CONTAINER_ID bash -c "chown -R docker:docker /var/www/html/storage/app/apline/${CURRENT_YEAR}"
 docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/apline -type d -print | xargs chmod 751"
 docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/apline -type f -print | xargs chmod 644"
 

@@ -16,7 +16,7 @@ fi
 
 USER_DIRECTORY=~
 
-ATTACH_DIRECTORY="${USER_DIRECTORY}/apline-laravel10/storage/app/apline/${arg1}"
+ATTACH_DIRECTORY="${USER_DIRECTORY}/apline_laravel10/storage/app/apline/${arg1}"
 
 #cd "${USER_DIRECTORY}/apline-laravel10/storage/app/apline"
 

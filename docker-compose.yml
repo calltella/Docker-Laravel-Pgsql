@@ -7,10 +7,7 @@ services:
             dockerfile: ./infra/php/Dockerfile
         environment:
             TZ: 'Asia/Tokyo'
-            WEBROOT: '/var/www/html/public'
-            PHP_REDIS_SESSION_HOST: 'redis'
-            COMPOSERMIRROR: 'https://packagist.org'
-            NPMMIRROR: 'https://registry.npm.taobao.org'
+            NPMMIRROR: 'https://registry.npmjs.org/'
         ports:
             - '${APP_PORT:-80}:80'
         volumes:
@@ -25,30 +22,31 @@ services:
             - phpipam-network
     postgres:
         container_name: postgres
-        image: groonga/pgroonga:2.4.4-alpine-14
+        image: groonga/pgroonga:3.1.8-alpine-16
         ports:
             - 5432:5432
         volumes:
-            - docker-laravel-pgsql_postgres_volume:/var/lib/postgresql/data
+            - postgres_groonga3_volume:/var/lib/postgresql/data
             - ./export/pgsql:/tmp/pgsql
         environment:
             TZ: "Asia/Tokyo"
-            POSTGRES_PASSWORD: root
-            POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+            LANG: ja_JP.utf8
+            POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=ja-JP"
+            POSTGRES_PASSWORD: '${POSTGRES_PASSWORD}'
         restart: '${DOCKER_RESTART}'
     pgadmin4:
         container_name: pgadmin4
-        image: dpage/pgadmin4:8.3
+        image: dpage/pgadmin4:8.4
         ports:
             - '${PG_PORT:-8080}:80'
         deploy:
             replicas: '${PHPMYADMIN_CONTINER_START}'
         volumes:
-            - docker-laravel-pgsql_pgadmin4_volume:/var/lib/pgadmin
+            - postgres_pgadmin4_volume:/var/lib/pgadmin
             - ./export/pgadmin4:/tmp/pgadmin4
         environment:
             PGADMIN_DEFAULT_EMAIL: '${PGADMIN_DEFAULT_EMAIL}'
-            PGADMIN_DEFAULT_PASSWORD: root
+            PGADMIN_DEFAULT_PASSWORD: '${PGADMIN_DEFAULT_PASSWORD}'
         hostname: pgadmin4
         depends_on:
           - postgres
@@ -68,8 +66,8 @@ networks:
     phpipam-network:
          external: true
 volumes:
-    docker-laravel-pgsql_postgres_volume:
+    postgres_groonga3_volume:
         external: true
-    docker-laravel-pgsql_pgadmin4_volume:
+    postgres_pgadmin4_volume:
         external: true
 

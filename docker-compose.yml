@@ -20,6 +20,9 @@ services:
         depends_on:
             - postgres
         restart: '${DOCKER_RESTART}'
+        networks:
+            - default
+            - phpipam-network
     postgres:
         container_name: postgres
         image: groonga/pgroonga:2.4.4-alpine-14

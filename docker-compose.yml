@@ -1,22 +1,22 @@
 version: '3.6'
 services:
     laravel:
-        container_name: 'docker_php_1' # cron起動しなくなるので名前変えない
+        container_name: docker_php_1 # cron起動しなくなるので名前変えない
         build:
             context: .
             dockerfile: ./infra/php/Dockerfile
         environment:
-            TZ: 'Asia/Tokyo'
-            NPMMIRROR: 'https://registry.npmjs.org/'
+            TZ: "Asia/Tokyo"
+            NPMMIRROR: "https://registry.npmjs.org/"
         ports:
-            - '${APP_PORT:-80}:80'
+            - "${APP_PORT:-80}:80"
         volumes:
-            - './export:/home/export'
-            - './laravel:/var/www/html'
-            - './infra/nginx/logs:/var/log/nginx'
+            - ./export:/home/export
+            - ./laravel:/var/www/html
+            - ./infra/nginx/logs:/var/log/nginx
         depends_on:
             - postgres
-        restart: '${DOCKER_RESTART}'
+        restart: "${DOCKER_RESTART}"
         networks:
             - default
             - phpipam-network
@@ -30,32 +30,32 @@ services:
             - ./export/pgsql:/tmp/pgsql
         environment:
             TZ: "Asia/Tokyo"
-            LANG: ja_JP.utf8
+            LANG: "ja_JP.utf8"
             POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=ja-JP"
-            POSTGRES_PASSWORD: '${POSTGRES_PASSWORD}'
-        restart: '${DOCKER_RESTART}'
+            POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+        restart: "${DOCKER_RESTART}"
     pgadmin4:
         container_name: pgadmin4
         image: dpage/pgadmin4:8.4
         ports:
-            - '${PG_PORT:-8080}:80'
+            - "${PG_PORT:-8080}:80"
         deploy:
-            replicas: '${PHPMYADMIN_CONTINER_START}'
+            replicas: "${PHPMYADMIN_CONTINER_START}"
         volumes:
             - postgres_pgadmin4_volume:/var/lib/pgadmin
             - ./export/pgadmin4:/tmp/pgadmin4
         environment:
-            PGADMIN_DEFAULT_EMAIL: '${PGADMIN_DEFAULT_EMAIL}'
-            PGADMIN_DEFAULT_PASSWORD: '${PGADMIN_DEFAULT_PASSWORD}'
+            PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL}"
+            PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
         hostname: pgadmin4
         depends_on:
           - postgres
     cron:
-        container_name: 'docker_cron_1'
+        container_name: docker_cron_1
         build: ./infra/cron
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
-        restart: '${DOCKER_RESTART}'
+        restart: "${DOCKER_RESTART}"
 networks:
     default:
         driver: bridge

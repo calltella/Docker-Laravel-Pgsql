@@ -47,7 +47,7 @@ if [ ! -d "$BACKUP_DIRECTORY" ]; then
 fi
 
 # 不要なファイルを削除
-find "${BACKUP_DIRECTORY}" -name "production-dbdump-*.zip" -type f -exec rm -f {} \;
+find "${BACKUP_DIRECTORY}" -name "production-dbdump-*.sql" -type f -exec rm -f {} \;
 
 # 本番環境からファイルをコピー
 scp "preserver30:${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/DailyBackup/production-dbdump-*.sql" "${BACKUP_DIRECTORY}"
@@ -71,9 +71,11 @@ copy_table_to_development "apline_file_store"
 
 # phpipamテーブルコピー
 copy_table_to_development "phpipam_subnet_table"
+copy_table_to_development "phpipam_display_information"
 
 # 不要なファイルを削除
 docker exec $CONTAINER_ID bash -c "rm -f /tmp/pgsql/*.dump"
 
-
+# migrateデータベーステスト（2024/06/18から）
+docker exec $CONTAINER_ID bash -c "psql -U postgres -d development -f /tmp/pgsql/migrate-table-copy.sql"
 

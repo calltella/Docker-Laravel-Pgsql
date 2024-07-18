@@ -62,20 +62,19 @@ docker exec $CONTAINER_ID bash -c "psql -U postgres -d production -f /tmp/pgsql/
 copy_table_to_development() {
     TABLE=$1
     docker exec $CONTAINER_ID bash -c "pg_dump -c --if-exists -U postgres -t $TABLE production > /tmp/pgsql/production_$TABLE.dump"
-    docker exec $CONTAINER_ID bash -c "psql -U postgres -d development < /tmp/pgsql/production_$TABLE.dump"
+    docker exec $CONTAINER_ID bash -c "psql -U postgres -d development -c 'TRUNCATE TABLE $TABLE;' && psql -U postgres -d development < /tmp/pgsql/production_$TABLE.dump"
 }
 
-copy_table_to_development "poshelp_desk"
-copy_table_to_development "apline_base_model"
-copy_table_to_development "apline_file_store"
-
-# phpipamテーブルコピー
-copy_table_to_development "phpipam_subnet_table"
-copy_table_to_development "phpipam_display_information"
+copy_table_to_development "migrate_pos_helpdesk_daily_reports"
+copy_table_to_development "migrate_apline_base_model"
+copy_table_to_development "migrate_apline_file_store"
+copy_table_to_development "migrate_fresta_ping_exec_values"
+copy_table_to_development "migrate_phpipam_device_parameters"
+copy_table_to_development "migrate_apline_users_list"
+copy_table_to_development "migrate_fresta_ipadress_thirdoctet"
 
 # 不要なファイルを削除
 docker exec $CONTAINER_ID bash -c "rm -f /tmp/pgsql/*.dump"
 
-# migrateデータベーステスト（2024/06/18から）
-docker exec $CONTAINER_ID bash -c "psql -U postgres -d development -f /tmp/pgsql/migrate-table-copy.sql"
+
 

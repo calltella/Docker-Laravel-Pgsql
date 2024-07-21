@@ -72,6 +72,9 @@ copy_table_to_development "migrate_fresta_ping_exec_values"
 copy_table_to_development "migrate_phpipam_device_parameters"
 copy_table_to_development "migrate_apline_users_list"
 copy_table_to_development "migrate_fresta_ipadress_thirdoctet"
+copy_table_to_development "migrate_local_file_storage_store"
+copy_table_to_development "migrate_local_file_storage_file_history"
+
 
 # 不要なファイルを削除
 docker exec $CONTAINER_ID bash -c "rm -f /tmp/pgsql/*.dump"

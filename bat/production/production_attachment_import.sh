@@ -18,12 +18,10 @@ USER_DIRECTORY=~
 
 ATTACH_DIRECTORY="${USER_DIRECTORY}/apline_laravel10/storage/app/apline/${arg1}"
 
-FILE_STORE_DIRECTORY="${USER_DIRECTORY}/apline_laravel10/storage/app/filestore/${arg1}"
-#cd "${USER_DIRECTORY}/apline-laravel10/storage/app/apline"
+FILE_STORE_DIRECTORY="${USER_DIRECTORY}/apline_laravel10/storage/app/filestore/"
 
-#echo "${USER_DIRECTORY}/apline-laravel10/storage/app/apline"
 echo $ATTACH_DIRECTORY
 zip "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/archive${arg1}.zip" -r $ATTACH_DIRECTORY
 
 echo $FILE_STORE_DIRECTORY
-zip "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/archive/filestore.zip" -r $FILE_STORE_DIRECTORY
+zip "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/filestore.zip" -r $FILE_STORE_DIRECTORY

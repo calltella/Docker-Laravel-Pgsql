@@ -33,6 +33,7 @@ ssh preserver30 "${USER_DIRECTORY}/Docker-Laravel-Pgsql/bat/production/productio
 
 # 本番環境からファイルをコピー
 scp "preserver30:${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/archive${CURRENT_YEAR}.zip" "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export"
+scp "preserver30:${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/filestore.zip" "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export"
 
 # 解凍したフォルダが存在してなければ解凍してファイルを移動
 if [ ! -d "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/${CURRENT_YEAR}" ]; then
@@ -49,6 +50,22 @@ fi
 docker exec $CONTAINER_ID bash -c "chown -R docker:docker /var/www/html/storage/app/apline/${CURRENT_YEAR}"
 docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/apline -type d -print | xargs chmod 751"
 docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/apline -type f -print | xargs chmod 644"
+
+# 解凍したフォルダが存在してなければ解凍してファイルを移動
+if [ ! -d "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/filestore" ]; then
+    unzip -d "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export" "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/filestore.zip" > /dev/null
+    echo "exec unzip filestore.zip"
+    docker exec $CONTAINER_ID bash -c "rm -rf /var/www/html/storage/app/filestore"
+    docker exec $CONTAINER_ID bash -c "rm -f /home/export/filestore.zip"
+    docker exec $CONTAINER_ID bash -c "mv /home/export/home/ec2-user/apline_laravel10/storage/app/filestore /var/www/html/storage/app/filestore"
+    docker exec $CONTAINER_ID bash -c "rm -rf /home/export/home"
+    echo "attachfile moved"
+fi
+
+# 権限の変更
+docker exec $CONTAINER_ID bash -c "chown -R docker:docker /var/www/html/storage/app/filestore"
+docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/filestore -type d -print | xargs chmod 751"
+docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/filestore -type f -print | xargs chmod 644"
 
 exit 0
 

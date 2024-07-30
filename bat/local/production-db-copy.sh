@@ -27,14 +27,16 @@ USER_DIRECTORY=~
 source "${USER_DIRECTORY}/Docker-Laravel-Pgsql/.env"
 
 # コンテナのIDを取得
-CONTAINER_ID=$(docker ps -q --filter name=$DATABASE_CONTAINER_NAME)
+DATABASE_CONTAINER_ID=$(docker ps -q --filter name=$DATABASE_CONTAINER_NAME)
+LARAVEL_CONTAINER_ID=$(docker ps -q --filter name=$LARAVEL_CONTAINER_NAME)
+
 
 # コンテナが起動しているか確認
-if [ -z "$CONTAINER_ID" ]; then
+if [ -z "$DATABASE_CONTAINER_ID" ]; then
   echo "Container $DATABASE_CONTAINER_NAME is not running."
   exit 1  # 終了コード 1 でスクリプトを終了
 else
-  echo "Container $DATABASE_CONTAINER_NAME is running with ID: $CONTAINER_ID"
+  echo "Container $DATABASE_CONTAINER_NAME is running with ID: $DATABASE_CONTAINER_ID"
 fi
 
 # バックアップファイルを配置するディレクトリ
@@ -56,13 +58,13 @@ scp "preserver30:${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/DailyBackup/produ
 BACKUP_FILE=$(find "${BACKUP_DIRECTORY}" -type f -name "*${BACKUP_DATE}*" -exec basename {} \;)
 
 # バックアップファイルをレストア
-docker exec $CONTAINER_ID bash -c "psql -U postgres -d production -f /tmp/pgsql/${BACKUP_FILE}"
+docker exec $DATABASE_CONTAINER_ID bash -c "psql -U postgres -d production -f /tmp/pgsql/${BACKUP_FILE}"
 
 # table development database copy
 copy_table_to_development() {
     TABLE=$1
-    docker exec $CONTAINER_ID bash -c "pg_dump -c --if-exists -U postgres -t $TABLE production > /tmp/pgsql/production_$TABLE.dump"
-    docker exec $CONTAINER_ID bash -c "psql -U postgres -d development -c 'TRUNCATE TABLE $TABLE;' && psql -U postgres -d development < /tmp/pgsql/production_$TABLE.dump"
+    docker exec $DATABASE_CONTAINER_ID bash -c "pg_dump -c --if-exists -U postgres -t $TABLE production > /tmp/pgsql/production_$TABLE.dump"
+    docker exec $DATABASE_CONTAINER_ID bash -c "psql -U postgres -d development -c 'TRUNCATE TABLE $TABLE;' && psql -U postgres -d development < /tmp/pgsql/production_$TABLE.dump"
 }
 
 copy_table_to_development "migrate_pos_helpdesk_daily_reports"
@@ -77,7 +79,12 @@ copy_table_to_development "migrate_local_file_storage_file_history"
 
 
 # 不要なファイルを削除
-docker exec $CONTAINER_ID bash -c "rm -f /tmp/pgsql/*.dump"
+docker exec $DATABASE_CONTAINER_ID bash -c "rm -f /tmp/pgsql/*.dump"
+
+# dropbox用バックアップファイルコピー
+HOST_PATH="/home/ec2-user/Docker-Laravel-Pgsql/export/pgsql/${BACKUP_FILE}"
+TARGET_PATH="/home/ec2-user/apline_laravel10/storage/app/backup/${BACKUP_FILE}"
+cp $HOST_PATH $TARGET_PATH
 
 
 

@@ -1,4 +1,3 @@
-version: '3.6'
 services:
     laravel:
         container_name: docker_php_1 # cron起動しなくなるので名前変えない
@@ -36,7 +35,7 @@ services:
         restart: "${DOCKER_RESTART}"
     pgadmin4:
         container_name: pgadmin4
-        image: dpage/pgadmin4:8.4
+        image: dpage/pgadmin4:8.10
         ports:
             - "${PG_PORT:-8080}:80"
         deploy:

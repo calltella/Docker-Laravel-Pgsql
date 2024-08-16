@@ -1,70 +1,69 @@
 services:
-    laravel:
-        container_name: docker_php_1 # cron起動しなくなるので名前変えない
-        build:
-            context: .
-            dockerfile: ./infra/php/Dockerfile
-        environment:
-            TZ: "Asia/Tokyo"
-            NPMMIRROR: "https://registry.npmjs.org/"
-        ports:
-            - "${APP_PORT:-80}:80"
-        volumes:
-            - ./export:/home/export
-            - ./laravel:/var/www/html
-            - ./infra/nginx/logs:/var/log/nginx
-        depends_on:
-            - postgres
-        restart: "${DOCKER_RESTART}"
-        networks:
-            - default
-    postgres:
-        container_name: postgres
-        image: groonga/pgroonga:3.1.8-alpine-16
-        ports:
-            - 5432:5432
-        volumes:
-            - postgres_groonga3_volume:/var/lib/postgresql/data
-            - ./export/pgsql:/tmp/pgsql
-            - ./export/DailyBackup:/tmp/DailyBackup
-        environment:
-            TZ: "Asia/Tokyo"
-            LANG: "ja_JP.utf8"
-            POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=ja-JP"
-            POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-        restart: "${DOCKER_RESTART}"
-    pgadmin4:
-        container_name: pgadmin4
-        image: dpage/pgadmin4:8.10
-        ports:
-            - "${PG_PORT:-8080}:80"
-        deploy:
-            replicas: "${PHPMYADMIN_CONTINER_START}"
-        volumes:
-            - postgres_pgadmin4_volume:/var/lib/pgadmin
-            - ./export/pgadmin4:/tmp/pgadmin4
-        environment:
-            PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL}"
-            PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
-        hostname: pgadmin4
-        depends_on:
-          - postgres
-    cron:
-        container_name: docker_cron_1
-        build: ./infra/cron
-        volumes:
-            - /var/run/docker.sock:/var/run/docker.sock
-        restart: "${DOCKER_RESTART}"
+  laravel:
+    container_name: docker_php_1 # cron起動しなくなるので名前変えない
+    build:
+      context: .
+      dockerfile: ./infra/php/Dockerfile
+    environment:
+      TZ: "Asia/Tokyo"
+      NPMMIRROR: "https://registry.npmjs.org/"
+    ports:
+      - "${APP_PORT:-80}:80"
+    volumes:
+      - ./export:/home/export
+      - ./laravel:/var/www/html
+      - ./infra/nginx/logs:/var/log/nginx
+    depends_on:
+      - postgres
+    restart: "${DOCKER_RESTART}"
+    networks:
+      - default
+  postgres:
+    container_name: postgres
+    image: groonga/pgroonga:3.2.2-alpine-16
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_groonga3_volume:/var/lib/postgresql/data
+      - ./export/pgsql:/tmp/pgsql
+      - ./export/DailyBackup:/tmp/DailyBackup
+    environment:
+      TZ: "Asia/Tokyo"
+      LANG: "ja_JP.utf8"
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=ja-JP"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    restart: "${DOCKER_RESTART}"
+  pgadmin4:
+    container_name: pgadmin4
+    image: dpage/pgadmin4:8.10
+    ports:
+      - "${PG_PORT:-8080}:80"
+    deploy:
+      replicas: "${PHPMYADMIN_CONTINER_START}"
+    volumes:
+      - postgres_pgadmin4_volume:/var/lib/pgadmin
+      - ./export/pgadmin4:/tmp/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
+    hostname: pgadmin4
+    depends_on:
+      - postgres
+  cron:
+    container_name: docker_cron_1
+    build: ./infra/cron
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: "${DOCKER_RESTART}"
 networks:
-    default:
-        driver: bridge
-        ipam:
-            driver: default
-            config:
-                - subnet: 192.168.10.0/27
+  default:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.10.0/27
 volumes:
-    postgres_groonga3_volume:
-        external: true
-    postgres_pgadmin4_volume:
-        external: true
-
+  postgres_groonga3_volume:
+    external: true
+  postgres_pgadmin4_volume:
+    external: true

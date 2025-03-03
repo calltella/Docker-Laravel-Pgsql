@@ -35,7 +35,7 @@ services:
     restart: "${DOCKER_RESTART}"
   pgadmin4:
     container_name: pgadmin4
-    image: dpage/pgadmin4:9.0
+    image: dpage/pgadmin4:9.1
     ports:
       - "${PG_PORT:-8080}:80"
     deploy:

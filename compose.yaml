@@ -20,7 +20,7 @@ services:
       - default
   postgres:
     container_name: postgres
-    image: groonga/pgroonga:3.2.2-alpine-16
+    image: groonga/pgroonga:4.0.1-alpine-16
     ports:
       - 5432:5432
     volumes:

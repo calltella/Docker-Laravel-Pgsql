@@ -1,3 +1,3 @@
-FROM willfarrell/crontab:1.0.0
+FROM willfarrell/crontab:latest
 
 COPY config.json ${HOME_DIR}/

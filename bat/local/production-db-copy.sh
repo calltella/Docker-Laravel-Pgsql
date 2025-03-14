@@ -49,7 +49,7 @@ if [ ! -d "$BACKUP_DIRECTORY" ]; then
 fi
 
 # 不要なファイルを削除
-find "${BACKUP_DIRECTORY}" -name "production-dbdump-*.sql" -type f -exec rm -f {} \;
+find "${BACKUP_DIRECTORY}" -name "production-dbdump-*.sql" -type f -exec rm -f {} \; -o -name "production-dbdump-*.zip" -type f -exec rm -f {} \;
 
 # 本番環境からファイルをコピー
 scp "preserver30:${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/DailyBackup/production-dbdump-*.sql" "${BACKUP_DIRECTORY}"
@@ -82,9 +82,13 @@ copy_table_to_development "migrate_local_file_storage_file_history"
 docker exec $DATABASE_CONTAINER_ID bash -c "rm -f /tmp/pgsql/*.dump"
 
 # dropbox用バックアップファイルコピー
-HOST_PATH="/home/ec2-user/Docker-Laravel-Pgsql/export/pgsql/${BACKUP_FILE}"
-TARGET_PATH="/home/ec2-user/apline_laravel10/storage/app/backup/${BACKUP_FILE}"
-cp $HOST_PATH $TARGET_PATH
+BACKUP_FILE_NAME="${BACKUP_FILE%.*}"
+HOST_PATH="/home/ec2-user/Docker-Laravel-Pgsql/export/pgsql/${BACKUP_FILE_NAME}.sql"
+TARGET_PATH="/home/ec2-user/apline_laravel10/storage/app/backup"
+cp $HOST_PATH "${TARGET_PATH}/${BACKUP_FILE_NAME}.sql"
+
+# バックアップファイルの圧縮
+zip "${TARGET_PATH}/${BACKUP_FILE_NAME}.zip" "${TARGET_PATH}/${BACKUP_FILE_NAME}.sql"
 
 
 

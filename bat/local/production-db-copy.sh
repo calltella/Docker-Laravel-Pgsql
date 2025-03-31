@@ -79,6 +79,7 @@ copy_table_to_development "migrate_local_file_storage_file_history"
 copy_table_to_development "migrate_fresta_ping_exec_values"
 copy_table_to_development "migrate_store_information"
 copy_table_to_development "migrate_store_device_fp1_setup_info"
+copy_table_to_development "migrate_store_device_fp1_ping_log"
 
 
 # 不要なファイルを削除

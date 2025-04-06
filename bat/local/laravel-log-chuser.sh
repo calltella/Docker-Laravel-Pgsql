@@ -12,12 +12,12 @@ USER_DIRECTORY=~
 source "${USER_DIRECTORY}/Docker-Laravel-Pgsql/.env"
 
 LARAVEL_CONTAINER_ID=$(docker ps -q --filter name=$LARAVEL_CONTAINER_NAME)
+echo "Container $LARAVEL_CONTAINER_NAME is running with ID: $LARAVEL_CONTAINER_ID"
 
 # Laravelログの所有者を変更
-docker exec -it $LARAVEL_CONTAINER_ID chown -R nginx:nginx /var/www/html/storage/logs/
+docker exec $LARAVEL_CONTAINER_ID chown -R nginx:nginx /var/www/html/storage/logs/
+echo "Laravel logs ownership changed to nginx:nginx"
 
-# ngixnログの所有者を変更
-docker exec -it $LARAVEL_CONTAINER_ID chown -R nginx:nginx /var/log
-
-
-
+# Nginxログの所有者を変更
+docker exec $LARAVEL_CONTAINER_ID chown -R nginx:nginx /var/log
+echo "Nginx logs ownership changed to nginx:nginx"

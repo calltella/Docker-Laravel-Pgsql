@@ -61,26 +61,67 @@ fi
 #docker exec $DATABASE_CONTAINER_ID bash -c "psql -U postgres -d production -f /tmp/pgsql/${BACKUP_FILE}"
 
 # table development database copy
-copy_table_to_development() {
+
+
+sync_table_to_development() {
   TABLE="$1"
+
+  # production データベースからテーブルをダンプ
   docker exec "$DATABASE_CONTAINER_ID" bash -c "pg_dump -c -U postgres -t \"$TABLE\" production > /tmp/pgsql/production_\"$TABLE\".dump"
-  docker exec "$DATABASE_CONTAINER_ID" bash -c "psql -U postgres -d development -c 'TRUNCATE TABLE \"$TABLE\" CASCADE;' && psql -U postgres -d development < /tmp/pgsql/production_\"$TABLE\".dump"
+
+  # development データベースでテーブルが存在するか確認
+  TABLE_EXISTS=$(docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d development -tAc "SELECT 1 FROM pg_class WHERE relname='$TABLE' AND relkind='r';" | sed 's/ //g')
+
+  # テーブルが存在する場合のみ TRUNCATE とリストアを実行
+  if [ "$TABLE_EXISTS" -eq 1 ]; then
+    docker exec "$DATABASE_CONTAINER_ID" bash -c "psql -U postgres -d development -c 'TRUNCATE TABLE \"$TABLE\" CASCADE;'"
+    docker exec "$DATABASE_CONTAINER_ID" bash -c "psql -U postgres -d development < /tmp/pgsql/production_\"$TABLE\".dump"
+  else
+    echo "Warning: Table \"$TABLE\" does not exist in the development database. Skipping TRUNCATE and restore."
+  fi
 }
+sync_table_to_development "migrate_apline_users_list"
 
-copy_table_to_development "migrate_pos_helpdesk_daily_reports"
-copy_table_to_development "migrate_apline_base_model"
-copy_table_to_development "migrate_apline_file_store"
-copy_table_to_development "migrate_fresta_ping_exec_values"
-copy_table_to_development "migrate_phpipam_device_parameters"
-copy_table_to_development "migrate_apline_users_list"
-copy_table_to_development "migrate_fresta_ipadress_thirdoctet"
-copy_table_to_development "migrate_local_file_storage_store"
-copy_table_to_development "migrate_local_file_storage_file_history"
-copy_table_to_development "migrate_fresta_ping_exec_values"
-copy_table_to_development "migrate_store_information"
-copy_table_to_development "migrate_store_device_fp1_setup_info"
-copy_table_to_development "migrate_store_device_fp1_ping_log"
+sync_table_to_development "migrate_apline_base_model"
+sync_table_to_development "migrate_apline_file_store"
+sync_table_to_development "migrate_apline_pulldown_list"
+sync_table_to_development "migrate_apline_users_list"
 
+
+sync_table_to_development "migrate_apline_subsystem_lists"
+sync_table_to_development "migrate_apline_classification_lists"
+sync_table_to_development "migrate_apline_business_lists"
+sync_table_to_development "migrate_apline_severity_lists"
+sync_table_to_development "migrate_apline_emergency_lists"
+sync_table_to_development "migrate_apline_impact_lists"
+sync_table_to_development "migrate_apline_priority_lists"
+sync_table_to_development "migrate_apline_cause_lists"
+sync_table_to_development "migrate_apline_deal_lists"
+
+sync_table_to_development "migrate_fresta_ping_exec_values"
+sync_table_to_development "migrate_fresta_ipadress_thirdoctet"
+sync_table_to_development "migrate_phpipam_device_parameters"
+
+sync_table_to_development "migrate_local_file_storage_store"
+sync_table_to_development "migrate_local_file_storage_file_history"
+sync_table_to_development "migrate_fresta_ping_exec_values"
+
+sync_table_to_development "migrate_store_information"
+sync_table_to_development "migrate_store_device_fp1_setup_info"
+sync_table_to_development "migrate_store_device_fp1_ping_log"
+
+sync_table_to_development "migrate_pos_helpdesk_daily_reports"
+
+# インデックスの再作成
+echo "Recreating index on migrate_apline_base_model..."
+docker exec "$DATABASE_CONTAINER_ID" bash -c "psql -U postgres -d development -c \"
+DROP INDEX IF EXISTS pgroonga_nfkc100_unify_kana_index;
+CREATE INDEX pgroonga_nfkc100_unify_kana_index
+    ON migrate_apline_base_model
+    USING pgroonga (apid, title, work_content, organization, surveyresults, dealanswer, customerimpact, correspondingnote pgroonga_varchar_full_text_search_ops_v2);
+\""
+
+echo "Index recreated successfully."
 
 # 不要なファイルを削除
 #docker exec $DATABASE_CONTAINER_ID bash -c "rm -f /tmp/pgsql/*.dump"

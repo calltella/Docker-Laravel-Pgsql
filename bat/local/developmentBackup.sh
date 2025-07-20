@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# productionデータベースはDropboxからファイルを取得してLaravel側でレストアします
 set -e
 
 # ユーザーディレクトリを取得

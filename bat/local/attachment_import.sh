@@ -6,6 +6,7 @@ set -e
 # sudo chown -R docker-nginx:101 storage/app/apline
 # sudo usermod -aG docker-nginx ec2-user （グループに参加）
 # sudo chmod -R go+rx apline/　（グループで読み込み）
+# uid=101(docker-nginx) gid=1001(docker-nginx) groups=1001(docker-nginx)
 
 # コマンドライン引数の取得
 arg1=$1
@@ -35,11 +36,11 @@ else
 fi
 
 # 本番環境の添付ファイル群を取得
-ssh preserver30 "${USER_DIRECTORY}/Docker-Laravel-Pgsql/bat/production/production_attachment_import.sh ${CURRENT_YEAR}"
+ssh pc0316 "${USER_DIRECTORY}/Docker-Laravel-Pgsql/bat/production/production_attachment_import.sh ${CURRENT_YEAR}"
 
 # 本番環境からファイルをコピー
-scp "preserver30:${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/archive${CURRENT_YEAR}.zip" "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export"
-scp "preserver30:${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/filestore.zip" "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export"
+scp "pc0316:${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/archive${CURRENT_YEAR}.zip" "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export"
+scp "pc0316:${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/filestore.zip" "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export"
 
 # 変数の定義
 DIR="/home/ec2-user/apline_laravel10/storage/app/apline"

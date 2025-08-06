@@ -1,6 +1,10 @@
 #!/bin/bash
 
 # Laravelログをローテートするとユーザーがrootになるので対策
+# 夜間に実行していたがパソコン電源断するとAplineが使用できなくなるので毎時実行に変更
+# crontabの設定例
+# 毎時実行する場合は以下のように設定
+# 0 * * * * /home/ec2-user/Docker-Laravel-Pgsql/bat/local/laravel-log-chuser.sh >> /tmp/cron.log 2>&1
 #
 
 set -e

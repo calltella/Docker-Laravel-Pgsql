@@ -44,6 +44,7 @@ sync_table_to_development() {
   fi
 }
 sync_table_to_development "migrate_apline_users_list"
+sync_table_to_development "migrate_user_article_reads"
 
 sync_table_to_development "migrate_apline_base_model"
 sync_table_to_development "migrate_apline_file_store"
@@ -63,6 +64,7 @@ sync_table_to_development "migrate_apline_deal_lists"
 sync_table_to_development "migrate_fresta_ping_exec_values"
 sync_table_to_development "migrate_fresta_ipadress_thirdoctet"
 sync_table_to_development "migrate_phpipam_device_parameters"
+sync_table_to_development "migrate_phpipam_function_ipaddresses_table"
 
 sync_table_to_development "migrate_local_file_storage_store"
 sync_table_to_development "migrate_local_file_storage_file_history"

@@ -1,4 +1,4 @@
-FROM tangramor/nginx-php8-fpm:php8.3.10_node22.5.1
+FROM tangramor/nginx-php8-fpm:php8.4.12_node24.7.0
 
 ARG USER=docker
 

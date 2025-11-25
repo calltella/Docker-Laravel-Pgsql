@@ -1,5 +1,6 @@
 .env
 laravel/
+renderlaravel/
 README_MEMO.md
 volume_backup/
 *.code-workspace

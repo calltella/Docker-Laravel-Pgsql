@@ -19,6 +19,18 @@ services:
     restart: "${DOCKER_RESTART}"
     networks:
       - default
+  renderlaravel: # Renderテスト用
+    build:
+      context: .
+      dockerfile: ./renderlaravel/Dockerfile
+    container_name: render_laravel   
+    volumes:
+      - ./renderlaravel:/var/www/html  
+    ports:
+      - "${RENDER_PORT_HTTP:-80}:80"
+      - "${RENDER_PORT_HTTPS:-443}:443"
+    networks:
+      - default
   postgres:
     container_name: postgres
     image: groonga/pgroonga:4.0.1-alpine-16

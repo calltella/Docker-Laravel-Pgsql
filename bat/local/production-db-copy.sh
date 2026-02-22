@@ -88,4 +88,16 @@ CREATE INDEX pgroonga_nfkc100_unify_kana_index
     USING pgroonga (apid, title, work_content, organization, surveyresults, dealanswer, customerimpact, correspondingnote pgroonga_varchar_full_text_search_ops_v2);
 \""
 
+# MaxApidを更新（開発用ＤＢ）
+docker exec "$DATABASE_CONTAINER_ID" bash -c "psql -U postgres -d development -c \"
+UPDATE migrate_apline_configuration
+SET max_apid_check = sub.max_numeric_part
+FROM (
+    SELECT MAX(CAST(split_part(regexp_replace(apid, '^[^0-9]+', ''), '-', 1) AS INTEGER)) AS max_numeric_part
+    FROM public.migrate_apline_base_model
+    WHERE apid LIKE 'FSAS%'
+) AS sub
+WHERE env = 'develop';
+\""
+
 echo "Index recreated successfully."

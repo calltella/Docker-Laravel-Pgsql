@@ -1,4 +1,17 @@
 services:
+  nextjs:
+    container_name: nextjs_app
+    build:
+      context: .   # Next.jsのフォルダ
+      dockerfile: ./infra/nextjs/Dockerfile # Next.js用Dockerfileを作成
+    ports:
+      - "3000:3000"       # Next.jsのデフォルトポート
+    volumes:
+      - ./nextjs:/app     # ソースコードをコンテナにマウント
+    environment:
+      NODE_ENV: development
+      TZ: "Asia/Tokyo"
+    restart: "${DOCKER_RESTART}"
   laravel:
     container_name: docker_php_1 # cron起動しなくなるので名前変えない
     build:
@@ -39,8 +52,6 @@ services:
     image: "${PGADMIN_IMAGE_LIBRAY}"
     ports:
       - "${PG_PORT:-8080}:80"
-    deploy:
-      replicas: "${PHPMYADMIN_CONTINER_START}"
     volumes:
       - postgres_pgadmin4_volume:/var/lib/pgadmin
       - ./export/pgadmin4:/tmp/pgadmin4
@@ -60,7 +71,6 @@ networks:
   default:
     driver: bridge
     ipam:
-      driver: default
       config:
         - subnet: 192.168.10.0/27
 volumes:

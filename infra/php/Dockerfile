@@ -1,33 +1,49 @@
-FROM tangramor/nginx-php8-fpm:php8.4.12_node24.7.0
+FROM php:8.4-fpm-alpine
 
-ARG USER=docker
+RUN apk add --no-cache \
+    git curl zip unzip \
+    libpng-dev \
+    libzip-dev \
+    postgresql-dev \
+    icu-dev \
+    openssl-dev \
+    imap-dev \
+    krb5-dev \
+    oniguruma-dev \
+    autoconf \
+    g++ \
+    make \
+    sudo \
+    nodejs npm
 
-RUN apk --no-cache add \
-    make        \
-    gcc         \
-    g++         \
-    musl-dev    \
-    binutils    \
-    autoconf    \
-    automake    \
-    libtool     \
-    pkgconfig   \
-    check-dev   \
-    file        \
-    patch       \
-    sudo
+# PHP拡張インストール（imap以外）
+RUN docker-php-ext-install -j$(nproc) \
+        pdo_pgsql \
+        pdo_mysql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip \
+        intl
 
-# nginx.conf コピー
-COPY ./infra/nginx/*.conf /etc/nginx/conf.d/
+# imap は PHP 8.4 で PECL に移行
+RUN pecl install imap \
+ && docker-php-ext-enable imap
 
-# php.ini コピー
+# Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
 COPY ./infra/php/php.ini /usr/local/etc/php/php.ini
 
-# 一般ユーザー追加
-# php artisan でファイル作成時にrootで作成されるので
-# ログイン後に’su docker’で利用
-RUN adduser -D $USER \
-        && echo "$USER ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/$USER \
-        && chmod 0440 /etc/sudoers.d/$USER
+WORKDIR /var/www/html/laravel
 
-# 起動ユーザーを一般ユーザーにするとnginx起動しなくなる
+RUN addgroup -g 1000 www && \
+    adduser -u 1000 -D -G www www && \
+    chown -R www:www /var/www/html/laravel
+
+RUN echo "www ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/www \
+    && chmod 0440 /etc/sudoers.d/www
+
+USER www

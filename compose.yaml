@@ -31,7 +31,7 @@ services:
     build:
       context: .
       dockerfile: ./infra/scheduler/Dockerfile
-    #profiles: ["optional"] # 一時的にコンテナを起動しない
+    profiles: ["optional"] # 一時的にコンテナを起動しない
     volumes:
       - /home/ec2-user/apline_laravel10:/var/www/html/laravel # symlinkは使用できない 
     working_dir: /var/www/html/laravel
@@ -68,6 +68,17 @@ services:
     hostname: pgadmin4
     depends_on:
       - postgres
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: "${DOCKER_RESTART}"
+    networks:
+      - default
 networks:
   default:
     driver: bridge
@@ -79,3 +90,4 @@ volumes:
     external: true
   postgres_pgadmin4_volume:
     external: true
+  redis_data:

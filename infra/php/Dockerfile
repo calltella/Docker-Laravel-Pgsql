@@ -5,6 +5,7 @@ RUN apk add --no-cache \
     libpng-dev \
     libzip-dev \
     postgresql-dev \
+    postgresql-client \
     icu-dev \
     openssl-dev \
     imap-dev \

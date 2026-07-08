@@ -52,6 +52,8 @@ services:
       LANG: "ja_JP.utf8"
       POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=ja-JP"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    networks:
+      - default
     restart: "${DOCKER_RESTART}"
   pgadmin4:
     container_name: pgadmin4
@@ -62,9 +64,13 @@ services:
       - postgres_pgadmin4_volume:/var/lib/pgadmin
       - ./export/pgadmin4:/tmp/pgadmin4
     environment:
+      SCRIPT_NAME: /pgadmin4
+      GUNICORN_ACCESS_LOGFILE: "-"
       PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL}"
       PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
     hostname: pgadmin4
+    networks:
+      - default
     depends_on:
       - postgres
   redis:
@@ -81,6 +87,7 @@ services:
 networks:
   default:
     driver: bridge
+    enable_ipv6: false
     ipam:
       config:
         - subnet: 192.168.10.0/27

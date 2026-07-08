@@ -28,9 +28,10 @@ fi
 
 sync_table_to_development() {
   TABLE="$1"
+  echo "Syncing table: $TABLE"
 
   # production データベースからテーブルをダンプ
-  docker exec "$DATABASE_CONTAINER_ID" bash -c "pg_dump -c -U postgres -t \"$TABLE\" production > /tmp/pgsql/production_\"$TABLE\".dump"
+  docker exec "$DATABASE_CONTAINER_ID" sh -c "pg_dump -c -U postgres -t \"$TABLE\" production > /tmp/pgsql/production_\"$TABLE\".dump"
 
   # development データベースでテーブルが存在するか確認
   TABLE_EXISTS=$(docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d development -tAc "SELECT 1 FROM pg_class WHERE relname='$TABLE' AND relkind='r';" | sed 's/ //g')
@@ -43,13 +44,12 @@ sync_table_to_development() {
     echo "Warning: Table \"$TABLE\" does not exist in the development database. Skipping TRUNCATE and restore."
   fi
 }
-sync_table_to_development "migrate_apline_users_list"
+
 sync_table_to_development "migrate_user_article_reads"
 
 sync_table_to_development "migrate_apline_base_model"
 sync_table_to_development "migrate_apline_file_store"
 sync_table_to_development "migrate_apline_pulldown_list"
-sync_table_to_development "migrate_apline_users_list"
 
 sync_table_to_development "migrate_apline_subsystem_lists"
 sync_table_to_development "migrate_apline_classification_lists"

@@ -21,7 +21,7 @@ services:
       - /home/ec2-user/apline_laravel10:/var/www/html/laravel
     working_dir: /var/www/html/laravel
     ports:
-      - "${NPM_RUN:-5173}:5173" # npm run dev用
+      - "${NPM_RUN:-5173}:5173"
     restart: "${DOCKER_DISABLE_AUTORUN}"
     networks:
       - default
@@ -30,9 +30,8 @@ services:
     build:
       context: .
       dockerfile: ./infra/scheduler/Dockerfile
-    profiles: ["scheduler"]
     volumes:
-      - ${LARAVEL_DIRECTORY}:/var/www/html/laravel # symlinkは使用できない 
+      - ${LARAVEL_DIRECTORY}:/var/www/html/laravel
     working_dir: /var/www/html/laravel
     networks:
       - default

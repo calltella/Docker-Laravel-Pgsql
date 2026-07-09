@@ -1,22 +1,54 @@
-FROM tangramor/nginx-php8-fpm:php8.2.12_node21.1.0
+FROM php:8.4-fpm-alpine
 
-ENV USER_NAME=docker
-ENV USER_ID=1000
-ENV GROUP_ID=1000
+RUN apk add --no-cache \
+    git curl zip unzip \
+    libpng-dev \
+    libzip-dev \
+    postgresql-dev \
+    postgresql-client \
+    icu-dev \
+    openssl-dev \
+    imap-dev \
+    krb5-dev \
+    oniguruma-dev \
+    autoconf \
+    g++ \
+    make \
+    sudo \
+    nodejs npm
 
-# https://github.com/tangramor/nginx-php8-fpm
-ENV TZ Asia/Tokyo
+# PHP拡張インストール（imap以外）
+RUN docker-php-ext-install -j$(nproc) \
+        pdo_pgsql \
+        pdo_mysql \
+        mbstring \
+        exif \
+        pcntl \
+        bcmath \
+        gd \
+        zip \
+        intl
 
-ENV WEBROOT /var/www/html/public
+# imap は PHP 8.4 で PECL に移行
+RUN pecl install imap \
+ && docker-php-ext-enable imap
 
-RUN apk add --no-cache --virtual .build-deps gcc g++ libc-dev make \
-    && apk del .build-deps
+# redis
+RUN pecl install redis \
+    && docker-php-ext-enable redis
 
-COPY ./infra/nginx/*.conf /etc/nginx/conf.d/
+# Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY ./infra/php/php.ini /usr/local/etc/php/php.ini
 
-# artisan コマンド使うときやcomposerやnpmつかう時に一般ユーザーないと困るので作成
-# コンテナ自体を一般ユーザーで稼働させるのは可能ではあるがイメージを1からつくらないといけないので面倒
-RUN addgroup -S -g "${GROUP_ID}" "${USER_NAME}" && \
-    adduser -u "${USER_ID}" -G "${USER_NAME}" -D "${USER_NAME}"
+WORKDIR /var/www/html/laravel
+
+RUN addgroup -g 1000 www && \
+    adduser -u 1000 -D -G www www && \
+    chown -R www:www /var/www/html/laravel
+
+RUN echo "www ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/www \
+    && chmod 0440 /etc/sudoers.d/www
+
+USER www

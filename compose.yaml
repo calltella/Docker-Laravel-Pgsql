@@ -1,0 +1,98 @@
+services:
+  nginx:
+    container_name: nginx
+    build:
+      context: .
+      dockerfile: infra/nginx/Dockerfile
+    volumes:
+      - ${LARAVEL_DIRECTORY}:/var/www/html/laravel
+    ports:
+      - "${APP_PORT:-80}:80"
+    networks:
+      - default
+    depends_on:
+      - php
+  php:
+    container_name: php
+    user: "1000:1000"
+    build:
+      dockerfile: ./infra/php/Dockerfile
+    volumes:
+      - /home/ec2-user/apline_laravel10:/var/www/html/laravel
+    working_dir: /var/www/html/laravel
+    ports:
+      - "${NPM_RUN:-5173}:5173"
+    restart: "${DOCKER_DISABLE_AUTORUN}"
+    networks:
+      - default
+  scheduler:
+    container_name: laravel-scheduler
+    build:
+      context: .
+      dockerfile: ./infra/scheduler/Dockerfile
+    volumes:
+      - ${LARAVEL_DIRECTORY}:/var/www/html/laravel
+    working_dir: /var/www/html/laravel
+    networks:
+      - default
+    depends_on:
+      - php   
+  postgres:
+    container_name: postgres
+    image: groonga/pgroonga:4.0.1-alpine-16
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_groonga3_volume:/var/lib/postgresql/data
+      - ./export/pgsql:/tmp/pgsql
+      - ./export/DailyBackup:/tmp/DailyBackup
+    environment:
+      TZ: "Asia/Tokyo"
+      LANG: "ja_JP.utf8"
+      POSTGRES_INITDB_ARGS: "--locale-provider=icu --icu-locale=ja-JP"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    networks:
+      - default
+    restart: "${DOCKER_RESTART}"
+  pgadmin4:
+    container_name: pgadmin4
+    image: "${PGADMIN_IMAGE_LIBRAY}"
+    ports:
+      - "${PG_PORT:-8080}:80"
+    volumes:
+      - postgres_pgadmin4_volume:/var/lib/pgadmin
+      - ./export/pgadmin4:/tmp/pgadmin4
+    environment:
+      SCRIPT_NAME: /pgadmin4
+      GUNICORN_ACCESS_LOGFILE: "-"
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD}"
+    hostname: pgadmin4
+    networks:
+      - default
+    depends_on:
+      - postgres
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: "${DOCKER_RESTART}"
+    networks:
+      - default
+networks:
+  default:
+    driver: bridge
+    enable_ipv6: false
+    ipam:
+      config:
+        - subnet: 192.168.10.0/27
+volumes:
+  postgres_groonga3_volume:
+    external: true
+  postgres_pgadmin4_volume:
+    external: true
+  redis_data:

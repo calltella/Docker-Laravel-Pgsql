@@ -2,3 +2,7 @@
 !/pgadmin4
 !/DailyBackup
 !.gitignore
+!pgsql/
+!pgadmin4/
+!DailyBackup/
+!sftpKeys/

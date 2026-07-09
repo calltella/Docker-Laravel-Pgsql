@@ -1,4 +1,3 @@
-FROM willfarrell/crontab
-# https://github.com/willfarrell/docker-crontab
+FROM willfarrell/crontab:latest
 
 COPY config.json ${HOME_DIR}/

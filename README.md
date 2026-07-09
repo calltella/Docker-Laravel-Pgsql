@@ -5,8 +5,8 @@ DockerでLaravelを手軽に使用出来る様に
 (Docker側のみphp,nodeを起動させる想定です。)
 
 ### Docker環境
- - Docker 20.10.13
- - docker-compose 1.29.2
+ - Docker v25.0.6
+ - docker-compose v2.29.1
 
 ### 構築環境
  - php:8.1.6-fpm

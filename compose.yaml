@@ -30,7 +30,7 @@ services:
     build:
       context: .
       dockerfile: ./infra/scheduler/Dockerfile
-    profiles: ["optional"] # 一時的にコンテナを起動しない
+    profiles: ["scheduler"]
     volumes:
       - ${LARAVEL_DIRECTORY}:/var/www/html/laravel # symlinkは使用できない 
     working_dir: /var/www/html/laravel

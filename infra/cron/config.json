@@ -1,8 +1,0 @@
-[
-  {
-    "comment": "laravel cron setting",
-    "schedule": "@every 1m",
-    "command": "php artisan schedule:run",
-    "container": "docker_php_1"
-  }
-]

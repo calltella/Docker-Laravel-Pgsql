@@ -27,10 +27,7 @@ services:
     networks:
       - default
   scheduler:
-<<<<<<< HEAD
     user: "1000:1000"
-=======
->>>>>>> 59c254ae27ee91f13d7d077016e1166ae1d1c1fa
     container_name: scheduler
     build:
       context: .

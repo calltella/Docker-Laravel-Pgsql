@@ -19,7 +19,7 @@ services:
     build:
       dockerfile: ./infra/php/Dockerfile
     volumes:
-      - /home/ec2-user/apline_laravel10:/var/www/html/laravel
+      - ${LARAVEL_DIRECTORY}:/var/www/html/laravel
     working_dir: /var/www/html/laravel
     ports:
       - "${NPM_RUN:-5173}:5173"
@@ -27,7 +27,10 @@ services:
     networks:
       - default
   scheduler:
+<<<<<<< HEAD
     user: "1000:1000"
+=======
+>>>>>>> 59c254ae27ee91f13d7d077016e1166ae1d1c1fa
     container_name: scheduler
     build:
       context: .

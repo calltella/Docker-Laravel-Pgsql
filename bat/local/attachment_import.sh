@@ -1,10 +1,4 @@
 #!/bin/sh
-<<<<<<< HEAD
-
-# 添付ファイルの最新化
-set -e
-
-=======
 set -e
 
 # ローカル側のファイルとDocker側のファイル権限整合について
@@ -13,7 +7,6 @@ set -e
 # sudo usermod -aG docker-nginx ec2-user （グループに参加）
 # sudo chmod -R go+rx apline/　（グループで読み込み）
 # uid=101(docker-nginx) gid=1001(docker-nginx) groups=1001(docker-nginx)
->>>>>>> development
 
 # コマンドライン引数の取得
 arg1=$1
@@ -25,12 +18,6 @@ else
   CURRENT_YEAR=$arg1
 fi
 
-<<<<<<< HEAD
-# 今年を採取
-
-
-=======
->>>>>>> development
 # ユーザーディレクトリを取得
 USER_DIRECTORY=~
 
@@ -49,29 +36,6 @@ else
 fi
 
 # 本番環境の添付ファイル群を取得
-<<<<<<< HEAD
-ssh sailpreserver20 "${USER_DIRECTORY}/Docker-Laravel-Pgsql/bat/production/production_attachment_import.sh ${CURRENT_YEAR}" # 本番環境の添付ファイルをZIP圧縮
-
-# 本番環境からファイルをコピー
-scp "sailpreserver20:${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/archive${CURRENT_YEAR}.zip" "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export"
-
-
-
-
-# フォルダ移動
-cd "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export"
-
-
-
-
-# 解凍したフォルダが存在してなければ解凍してファイルを移動
-if [ ! -d "${CURRENT_YEAR}/" ]; then
-    unzip "archive${CURRENT_YEAR}.zip" > /dev/null
-    echo "exec unzip"
-    docker exec $CONTAINER_ID bash -c "rm -rf /var/www/html/storage/app/apline/${CURRENT_YEAR}"
-    docker exec $CONTAINER_ID bash -c "rm -f /home/export/archive${CURRENT_YEAR}.zip"
-    docker exec $CONTAINER_ID bash -c "mv /home/export/${CURRENT_YEAR} /var/www/html/storage/app/apline/${CURRENT_YEAR}"
-=======
 ssh pc0316 "${USER_DIRECTORY}/Docker-Laravel-Pgsql/bat/production/production_attachment_import.sh ${CURRENT_YEAR}"
 
 # 本番環境からファイルをコピー
@@ -105,16 +69,10 @@ if [ ! -d "${USER_DIRECTORY}/Docker-Laravel-Pgsql/export/${CURRENT_YEAR}" ]; the
     docker exec $CONTAINER_ID bash -c "rm -f /home/export/archive${CURRENT_YEAR}.zip"
     docker exec $CONTAINER_ID bash -c "mv /home/export/home/ec2-user/apline_laravel10/storage/app/apline/${CURRENT_YEAR} /var/www/html/storage/app/apline/${CURRENT_YEAR}"
     docker exec $CONTAINER_ID bash -c "rm -rf /home/export/home"
->>>>>>> development
     echo "attachfile moved"
 fi
 
 # 権限の変更
-<<<<<<< HEAD
-docker exec $CONTAINER_ID bash -c "chown -R docker:docker /var/www/html/storage/app/apline/${CURRENT_YEAR}"
-docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/apline -type d -print | xargs chmod 751"
-docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/apline -type f -print | xargs chmod 644"
-=======
 docker exec $CONTAINER_ID bash -c "chown -R nginx:nginx /var/www/html/storage/app/apline/${CURRENT_YEAR}"
 docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/apline -type d -print | xargs chmod 751"
 docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/apline -type f -print | xargs chmod 644"
@@ -152,7 +110,6 @@ docker exec $CONTAINER_ID bash -c "chown -R nginx:nginx /var/www/html/storage/ap
 docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/filestore -type d -print | xargs chmod 751"
 docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/filestore -type f -print | xargs chmod 644"
 docker exec $CONTAINER_ID bash -c "find /var/www/html/storage/app/filestore -type d -print | xargs chmod go+rx"
->>>>>>> development
 
 exit 0
 

@@ -29,12 +29,16 @@ services:
   scheduler:
     user: "1000:1000"
     container_name: scheduler
+    cap_add:
+      - NET_RAW  # Ping動作用
     build:
       context: .
       dockerfile: ./infra/scheduler/Dockerfile
     volumes:
       - ${LARAVEL_DIRECTORY}:/var/www/html/laravel
     working_dir: /var/www/html/laravel
+    environment:
+      - HOME=/var/www/html  # tinker用
     networks:
       - default
     restart: "${DOCKER_RESTART}"

@@ -19,19 +19,19 @@ RUN apk add --no-cache \
 
 # PHP拡張インストール（imap以外）
 RUN docker-php-ext-install -j$(nproc) \
-        pdo_pgsql \
-        pdo_mysql \
-        mbstring \
-        exif \
-        pcntl \
-        bcmath \
-        gd \
-        zip \
-        intl
+    pdo_pgsql \
+    pdo_mysql \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    zip \
+    intl
 
 # imap は PHP 8.4 で PECL に移行
 RUN pecl install imap \
- && docker-php-ext-enable imap
+    && docker-php-ext-enable imap
 
 # redis
 RUN pecl install redis \

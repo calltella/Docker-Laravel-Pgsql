@@ -89,6 +89,7 @@ sync_different_table_to_development "migrate_apline_impact_lists" "l12_apline_im
 sync_different_table_to_development "migrate_apline_priority_lists" "l12_apline_priority_lists"
 sync_different_table_to_development "migrate_apline_cause_lists" "l12_apline_cause_lists"
 sync_different_table_to_development "migrate_apline_deal_lists" "l12_apline_deal_lists"
+sync_different_table_to_development "migrate_apline_status_list" "l12_apline_status_list"
 
 sync_different_table_to_development "migrate_fresta_ping_exec_values" "l12_fresta_ping_exec_values"
 sync_different_table_to_development "migrate_fresta_ipadress_thirdoctet" "l12_fresta_ipadress_thirdoctet"

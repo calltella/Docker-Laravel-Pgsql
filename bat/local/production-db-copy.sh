@@ -25,9 +25,9 @@ else
   echo "Container $DATABASE_CONTAINER_NAME is running with ID: $DATABASE_CONTAINER_ID"
 fi
 
-# ProductionのテーブルAからLaravel12のテーブルBへコピーする
+# ProductionのテーブルAからLaravel12のテーブルへコピーする
 # カラム構成が同じであることが前提
-# Laravel12側のテーブルBをTRUNCATEしてからINSERTする
+# Laravel12側のテーブルをTRUNCATEしてからINSERTする
 sync_different_table_to_development() {
 SOURCE_TABLE="$1"
 DESTINATION_TABLE="$2"
@@ -42,15 +42,15 @@ echo "Skipping."
 return
 fi
 
-# Production側テーブルAをCSVとして一時ファイルに出力
+# Production側テーブルをCSVとして一時ファイルに出力
 echo "Exporting Production table "$SOURCE_TABLE"..."
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d production -c "\COPY "$SOURCE_TABLE" TO '/tmp/pgsql/${SOURCE_TABLE}.csv' CSV HEADER"
 
-# Laravel12側テーブルBをTRUNCATE
+# Laravel12側テーブルをTRUNCATE
 echo "Truncating Laravel12 table "$DESTINATION_TABLE"..."
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "TRUNCATE TABLE "$DESTINATION_TABLE" CASCADE;"
 
-# CSVをLaravel12側テーブルBへINSERT
+# CSVをLaravel12側テーブルへINSERT
 echo "Importing data into Laravel12 table "$DESTINATION_TABLE"..."
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "\COPY "$DESTINATION_TABLE" FROM '/tmp/pgsql/${SOURCE_TABLE}.csv' CSV HEADER"
 
@@ -68,7 +68,7 @@ SELECT id, apid, title, status_id, organization, responsible, work_content, surv
 FROM migrate_apline_base_model";
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "DROP TABLE IF EXISTS migrate_apline_base_model;"
 
-# CloudflareD1からエクスポートされたSQLを実行
+# CloudflareD1からエクスポートされたSQLを実行（apline_file_store）※ Postgres用にCreate分の書換必要
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "DROP TABLE IF EXISTS apline_file_store;"
 docker compose exec postgres psql -U postgres -d laravel12 -f /tmp/pgsql/apline_file_store_backup.sql
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "TRUNCATE TABLE l12_apline_file_store;"
@@ -77,6 +77,9 @@ SELECT id, folder, file_path, file_name, ext, size, md5_hash, join_id, download_
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "DROP TABLE IF EXISTS apline_file_store;"
 
 # sync_table_to_development "migrate_user_article_reads"
+
+# 本番環境にはないので本番からレストア（修正がある場合は本番を修正）
+sync_different_table_to_development "l12_legacy_user_id_map" "l12_legacy_user_id_map"
 
 sync_different_table_to_development "migrate_apline_pulldown_list" "l12_apline_pulldown_list"
 sync_different_table_to_development "migrate_apline_subsystem_lists" "l12_apline_subsystem_lists"

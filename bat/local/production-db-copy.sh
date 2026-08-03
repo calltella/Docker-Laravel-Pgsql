@@ -81,6 +81,7 @@ docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "DROP TABL
 # 本番環境にはないので本番からレストア（修正がある場合は本番を修正）
 sync_different_table_to_development "l12_legacy_user_id_map" "l12_legacy_user_id_map"
 
+sync_different_table_to_development "migrate_apline_configuration" "l12_apline_configuration"
 sync_different_table_to_development "migrate_apline_pulldown_list" "l12_apline_pulldown_list"
 sync_different_table_to_development "migrate_apline_subsystem_lists" "l12_apline_subsystem_lists"
 sync_different_table_to_development "migrate_apline_classification_lists" "l12_apline_classification_lists"
@@ -117,7 +118,9 @@ docker exec "$DATABASE_CONTAINER_ID" bash -c "psql -U postgres -d laravel12 -c \
 DROP INDEX IF EXISTS pgroonga_nfkc100_unify_kana_index;
 CREATE INDEX pgroonga_nfkc100_unify_kana_index
     ON l12_apline_base_model
-    USING pgroonga (apid, title, work_content, organization, surveyresults, dealanswer, customerimpact, correspondingnote pgroonga_varchar_full_text_search_ops_v2);
+    USING pgroonga (ticket_number, title, reception_content, customer_organization, 
+    investigation_result, resolution_content, customer_impact, 
+    remediation_note pgroonga_varchar_full_text_search_ops_v2);
 \""
 
 # MaxApidを更新（開発用ＤＢ）
@@ -125,9 +128,9 @@ docker exec "$DATABASE_CONTAINER_ID" bash -c "psql -U postgres -d laravel12 -c \
 UPDATE l12_apline_configuration
 SET max_apid_check = sub.max_numeric_part
 FROM (
-    SELECT MAX(CAST(split_part(regexp_replace(apid, '^[^0-9]+', ''), '-', 1) AS INTEGER)) AS max_numeric_part
+    SELECT MAX(CAST(split_part(regexp_replace(ticket_number, '^[^0-9]+', ''), '-', 1) AS INTEGER)) AS max_numeric_part
     FROM public.l12_apline_base_model
-    WHERE apid LIKE 'FSAS%'
+    WHERE ticket_number LIKE 'FSAS%'
 ) AS sub
 WHERE env = 'develop';
 \""

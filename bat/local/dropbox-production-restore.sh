@@ -2,7 +2,7 @@
 
 # 本番環境のデータベースを開発環境にコピーする
 # Cronで app:restore-database-command を実行することで
-# Dropboxからファイルをダウンロードしproductionデータベースにインポート
+# CloudflareR2 からファイルをダウンロードしproductionデータベースにインポート
 # 特定のテーブルのみdevelopmentデータベースにコピー
 #
 
@@ -28,5 +28,5 @@ else
 fi
 
 # dropboxからデータベースをレストア
-docker exec $LARAVEL_CONTAINER_ID bash -c "php artisan app:restore-database-command"
+docker exec $LARAVEL_CONTAINER_ID sh -c "php artisan app:restore-database-command"
 

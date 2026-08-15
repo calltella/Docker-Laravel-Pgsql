@@ -27,6 +27,6 @@ else
   echo "Container $LARAVEL_CONTAINER_ID is running with ID: $LARAVEL_CONTAINER_ID"
 fi
 
-# dropboxからデータベースをレストア
+# CloudflareR2からデータベースをレストア
 docker exec $LARAVEL_CONTAINER_ID sh -c "php artisan app:restore-database-command"
 

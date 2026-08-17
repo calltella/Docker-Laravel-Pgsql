@@ -6,6 +6,7 @@ services:
       dockerfile: infra/nginx/Dockerfile
     volumes:
       - ${LARAVEL_DIRECTORY}:/var/www/html/laravel
+      - ${LEGACY_PHP_DIRECTORY}:/var/www/html/legacy
     ports:
       - "${APP_PORT:-80}:80"
     networks:
@@ -21,8 +22,17 @@ services:
     volumes:
       - ${LARAVEL_DIRECTORY}:/var/www/html/laravel
     working_dir: /var/www/html/laravel
-    ports:
-      - "${NPM_RUN:-5173}:5173"
+    restart: "${DOCKER_RESTART}"
+    networks:
+      - default
+  legacy:
+    container_name: legacy
+    user: "1000:1000"
+    build:
+      dockerfile: ./infra/php/Dockerfile
+    volumes:
+      - ${LEGACY_PHP_DIRECTORY}:/var/www/html/legacy
+    working_dir: /var/www/html/legacy
     restart: "${DOCKER_RESTART}"
     networks:
       - default

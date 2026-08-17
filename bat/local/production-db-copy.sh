@@ -133,7 +133,7 @@ sync_different_table_to_development "migrate_scrape_cvcf_settings" "l12_scrape_c
 # productionにテーブルがないので作成
 sync_different_table_to_development "l12_legacy_user_id_map"        "l12_legacy_user_id_map"
 sync_different_table_to_development "l12_failure_component_options" "l12_failure_component_options"
-#sync_different_table_to_development "l12_request_type_options"      "l12_request_type_options"
+sync_different_table_to_development "l12_request_type_options"      "l12_request_type_options"
 sync_different_table_to_development "l12_status_options"            "l12_status_options"
 sync_different_table_to_development "l12_subsystem_options"         "l12_subsystem_options"
 sync_different_table_to_development "l12_business_system_options"   "l12_business_system_options"
@@ -144,7 +144,6 @@ sync_different_table_to_development "l12_priority_options"          "l12_priorit
 sync_different_table_to_development "l12_cause_options"             "l12_cause_options"
 sync_different_table_to_development "l12_resolution_type_options"   "l12_resolution_type_options"
 sync_different_table_to_development "l12_store_search_settings"     "l12_store_search_settings"
-#sync_different_table_to_development "l12_store_information"         "l12_store_information"
 
 # インデックスの再作成
 echo "Recreating index on l12_apline_base_model..."

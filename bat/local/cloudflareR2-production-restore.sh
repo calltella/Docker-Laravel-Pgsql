@@ -16,6 +16,12 @@ USER_DIRECTORY=~
 # envファイルから環境変数を読込
 source "${USER_DIRECTORY}/Docker-Laravel-Pgsql/.env"
 
+# 本番環境なら処理中止
+if [ "$APP_ENV" = "production" ]; then
+  echo "ERROR: APP_ENV=production のため処理を中止します。"
+  exit 1
+fi
+
 # コンテナのIDを取得
 LARAVEL_CONTAINER_ID=$(docker ps -q --filter name=$LARAVEL_CONTAINER_NAME)
 

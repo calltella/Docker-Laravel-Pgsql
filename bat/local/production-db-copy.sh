@@ -125,10 +125,21 @@ sync_different_table_to_development "migrate_phpipam_function_ipaddresses_table"
 sync_different_table_to_development "migrate_fresta_ping_exec_values" "l12_fresta_ping_exec_values"
 sync_different_table_to_development "migrate_store_device_fp1_setup_info" "l12_store_device_fp1_setup_info"
 sync_different_table_to_development "migrate_store_device_fp1_ping_log" "l12_store_device_fp1_ping_log"
-sync_different_table_to_development "migrate_pos_helpdesk_daily_reports" "l12_pos_helpdesk_daily_reports"
 
-sync_different_table_to_development "migrate_scrape_cvcf_status" "l12_scrape_cvcf_status"
-sync_different_table_to_development "migrate_scrape_cvcf_settings" "l12_scrape_cvcf_settings"
+# POSヘルプデスクテーブル（カラム名変更）
+sync_different_table_to_development "migrate_pos_helpdesk_daily_reports" "migrate_pos_helpdesk_daily_reports"
+docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "TRUNCATE TABLE l12_pos_helpdesk_daily_reports;"
+docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "INSERT into l12_pos_helpdesk_daily_reports ( 
+id, received_at, store_name, store_contact_name, response_minutes, inquiry_type, received_by, handling_department, device_name, category_large, category_small, reception_details, response_details, reception_number, other_dept_cause, action_taken, created_at, updated_at
+) SELECT id, reception_date_time, store_name, store_manager, response_time, reception_type, receptionist, responsible_department, device_name, major_category, minor_category, reception_details, response_details, reception_number, other_department_cause, action_taken, created_at, updated_at
+ FROM migrate_pos_helpdesk_daily_reports;";
+
+# CVCFステータス一覧（カラム名変更）
+sync_different_table_to_development "migrate_scrape_cvcf_status"   "migrate_scrape_cvcf_status"
+docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "TRUNCATE TABLE l12_scrape_cvcf_status;"
+docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "INSERT INTO l12_scrape_cvcf_status ( id, store_code, mon_oprt, mon_opst, mon_invt, mon_infq, mon_otvt, mon_otfq, mon_lod0, mon_batv, mon_bacp, mon_batp, mon_bata, mon_batd, mon_barm, created_at, updated_at)
+SELECT id, tencd, mon_oprt, mon_opst, mon_invt, mon_infq, mon_otvt, mon_otfq, mon_lod0, mon_batv, mon_bacp, mon_batp, mon_bata, mon_batd, mon_barm, created_at, updated_at
+FROM migrate_scrape_cvcf_status";
 
 # productionにテーブルがないので作成
 sync_different_table_to_development "l12_legacy_user_id_map"        "l12_legacy_user_id_map"

@@ -87,8 +87,7 @@ services:
     hostname: pgadmin4
     networks:
       - default
-    depends_on:
-      - postgres
+    restart: no
   redis:
     container_name: redis
     image: redis:7-alpine

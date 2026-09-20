@@ -1,9 +1,11 @@
 #!/bin/bash
 
-# 本番環境のデータベースを開発環境にコピーする
-# scheduler の app:restore-database-command を実行することで
-# CloudflareR2 からファイルをダウンロードしproductionデータベースにインポート
+# **************************************************************************
+# 現本番環境のデータベースを新本番環境にコピーする
 # 特定のテーブルのみLaravel12 データベースにコピー
+# migrate_apline_base_model → l12_apline_base_model (カラム構成違い)
+# migrate_apline_base_model (CloudflareD1からエクスポートSQLを実行)
+# 
 #
 
 set -e
@@ -89,15 +91,6 @@ FROM migrate_apline_base_model";
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "SELECT setval(pg_get_serial_sequence('l12_apline_base_model', 'id'), COALESCE((SELECT MAX(id) FROM l12_apline_base_model), 1), true);"
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "DROP TABLE IF EXISTS migrate_apline_base_model;"
 
-# カラム構成が違うので個別に処理 (migrate_apline_configuration)
-docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "DROP TABLE IF EXISTS migrate_apline_configuration;"
-docker exec "$DATABASE_CONTAINER_ID" sh -c "pg_dump -U postgres -d production --table=migrate_apline_configuration | psql -U postgres -d laravel12"
-docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "TRUNCATE TABLE l12_apline_configuration;"
-docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "INSERT INTO l12_apline_configuration (env,perpage,header_only_size,main_title,dev_bgcolor,max_apid_check,request_ip,status_color,base_url,slack_post,fileupload_max,phpipam_tengroup,apline_export_id,file_store_export_id)
-SELECT env,perpage,header_only_size,main_title,dev_bgcolor,max_apid_check,request_ip,status_color,base_url,slack_post,fileupload_max,phpipam_tengroup,apline_export_id,file_store_export_id
-FROM migrate_apline_configuration";
-docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "DROP TABLE IF EXISTS migrate_apline_configuration;"
-
 # CloudflareD1からエクスポートされたSQLを実行（apline_file_store）※ Postgres用にCreate分の書換必要
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "DROP TABLE IF EXISTS apline_file_store;"
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -f "/tmp/pgsql/apline_file_store_backup.sql"
@@ -115,48 +108,6 @@ docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -c "DROP DATABASE IF EXIST
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -c "CREATE DATABASE \"laravel12_BK\";"
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12_BK -f /tmp/pgsql/l12_backup_db_schema_only.sql
 docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12_BK -f /tmp/pgsql/l12_backup_db_data_only.sql
-
-# 随時更新されるデータだけ本番環境からコピー
-sync_different_table_to_development "migrate_fresta_ping_exec_values" "l12_fresta_ping_exec_values"
-sync_different_table_to_development "migrate_fresta_ipadress_thirdoctet" "l12_fresta_ipadress_thirdoctet"
-sync_different_table_to_development "migrate_phpipam_device_parameters" "l12_phpipam_device_parameters"
-sync_different_table_to_development "migrate_phpipam_function_ipaddresses_table" "l12_phpipam_function_ipaddresses_table"
-
-sync_different_table_to_development "migrate_fresta_ping_exec_values" "l12_fresta_ping_exec_values"
-sync_different_table_to_development "migrate_store_device_fp1_setup_info" "l12_store_device_fp1_setup_info"
-sync_different_table_to_development "migrate_store_device_fp1_ping_log" "l12_store_device_fp1_ping_log"
-
-# POSヘルプデスクテーブル（カラム名変更）
-sync_different_table_to_development "migrate_pos_helpdesk_daily_reports" "migrate_pos_helpdesk_daily_reports"
-docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "TRUNCATE TABLE l12_pos_helpdesk_daily_reports;"
-docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "INSERT into l12_pos_helpdesk_daily_reports ( 
-id, received_at, store_name, store_contact_name, response_minutes, inquiry_type, received_by, handling_department, device_name, category_large, category_small, reception_details, response_details, reception_number, other_dept_cause, action_taken, created_at, updated_at
-) SELECT id, reception_date_time, store_name, store_manager, response_time, reception_type, receptionist, responsible_department, device_name, major_category, minor_category, reception_details, response_details, reception_number, other_department_cause, action_taken, created_at, updated_at
- FROM migrate_pos_helpdesk_daily_reports;";
-docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "SELECT setval(pg_get_serial_sequence('l12_pos_helpdesk_daily_reports', 'id'), COALESCE((SELECT MAX(id) FROM l12_pos_helpdesk_daily_reports), 1), true);"
-
-# CVCFステータス一覧（カラム名変更）
-sync_different_table_to_development "migrate_scrape_cvcf_status"   "migrate_scrape_cvcf_status"
-docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "TRUNCATE TABLE l12_scrape_cvcf_status;"
-docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "INSERT INTO l12_scrape_cvcf_status ( id, store_code, mon_oprt, mon_opst, mon_invt, mon_infq, mon_otvt, mon_otfq, mon_lod0, mon_batv, mon_bacp, mon_batp, mon_bata, mon_batd, mon_barm, created_at, updated_at)
-SELECT id, tencd, mon_oprt, mon_opst, mon_invt, mon_infq, mon_otvt, mon_otfq, mon_lod0, mon_batv, mon_bacp, mon_batp, mon_bata, mon_batd, mon_barm, created_at, updated_at
-FROM migrate_scrape_cvcf_status";
-docker exec "$DATABASE_CONTAINER_ID" psql -U postgres -d laravel12 -c "SELECT setval(pg_get_serial_sequence('l12_scrape_cvcf_status', 'id'), COALESCE((SELECT MAX(id) FROM l12_scrape_cvcf_status), 1), true);"
-
-# productionにテーブルがないので作成
-sync_different_table_to_development "l12_legacy_user_id_map"        "l12_legacy_user_id_map"
-sync_different_table_to_development "l12_failure_component_options" "l12_failure_component_options"
-sync_different_table_to_development "l12_request_type_options"      "l12_request_type_options"
-sync_different_table_to_development "l12_status_options"            "l12_status_options"
-sync_different_table_to_development "l12_subsystem_options"         "l12_subsystem_options"
-sync_different_table_to_development "l12_business_system_options"   "l12_business_system_options"
-sync_different_table_to_development "l12_severity_options"          "l12_severity_options"
-sync_different_table_to_development "l12_emergency_options"         "l12_emergency_options"
-sync_different_table_to_development "l12_impact_options"            "l12_impact_options"
-sync_different_table_to_development "l12_priority_options"          "l12_priority_options"
-sync_different_table_to_development "l12_cause_options"             "l12_cause_options"
-sync_different_table_to_development "l12_resolution_type_options"   "l12_resolution_type_options"
-sync_different_table_to_development "l12_store_search_settings"     "l12_store_search_settings"
 
 # インデックスの再作成
 echo "Recreating index on l12_apline_base_model..."

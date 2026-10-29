@@ -26,3 +26,5 @@ yarn-error.log
 sessions/
 .vscode/
 .memoFolder/
+/AGENTS.md
+/docs/

@@ -32,6 +32,37 @@ services:
     restart: "${DOCKER_RESTART}"
     networks:
       - default
+  apline-sync-worker:
+    user: "1000:1000"
+    build:
+      dockerfile: ./infra/apline-sync-worker/Dockerfile
+    working_dir: /var/www/html/laravel
+    volumes:
+      - ${LARAVEL_DIRECTORY}:/var/www/html/laravel
+    command:
+      - php
+      - artisan
+      - queue:work
+      - database
+      - --queue=apline-sync
+      - --sleep=3
+      - --timeout=50
+      - --tries=1
+      - --max-time=3600
+    # 正常終了・異常終了のいずれも再起動。ホスト再起動後も自動起動。
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 70s
+    networks:
+      - default
+    depends_on:
+      - postgres
+      - redis
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
   legacy:
     container_name: legacy
     user: "1000:1000"

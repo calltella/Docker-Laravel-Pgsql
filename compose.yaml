@@ -33,6 +33,7 @@ services:
     networks:
       - default
   apline-sync-worker:
+    container_name: apline-sync-worker
     user: "1000:1000"
     build:
       dockerfile: ./infra/apline-sync-worker/Dockerfile
@@ -50,7 +51,7 @@ services:
       - --tries=1
       - --max-time=3600
     # 正常終了・異常終了のいずれも再起動。ホスト再起動後も自動起動。
-    restart: unless-stopped
+    restart: "${DOCKER_RESTART}"
     init: true
     stop_grace_period: 70s
     networks:

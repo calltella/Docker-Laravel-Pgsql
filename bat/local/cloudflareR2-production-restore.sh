@@ -4,9 +4,31 @@
 # Docker用.envとLaravelのキャッシュ済み設定の両方が local の場合のみ許可する。
 # 復元先はローカルComposeの postgres:5432 に限定し、DB名は
 # Docker用.envの R2_RESTORE_DATABASE と一致することを事前確認してから php artisan で実行する。
+# 使用方法: bash bat/local/cloudflareR2-production-restore.sh [Laravel/バックアップ.zip | --list]
+# 引数なしは最新世代。--list は世代一覧のみ表示し、サービス停止・復元は行わない。
+#
+# 世代一覧を表示（復元・サービス停止はしません）
+# bash bat/local/cloudflareR2-production-restore.sh --list
+#
+# 一覧に表示されたR2パスを指定して復元
+# bash bat/local/cloudflareR2-production-restore.sh 'Laravel/バックアップ名.zip'
+#
+# 引数なしは従来どおり最新世代
+# bash bat/local/cloudflareR2-production-restore.sh
+#
 # PHPは実行用に残し、入口・ワーカー・スケジューラー等の停止確認後に復元する。
 
 set -euo pipefail
+if [ "$#" -gt 1 ]; then
+  echo "使用方法: $0 [Laravel/バックアップ.zip | --list]" >&2
+  exit 1
+fi
+BACKUP_PATH=${1-}
+if [ "$#" -eq 1 ] && [ "$BACKUP_PATH" != --list ] && \
+   [[ ! "$BACKUP_PATH" =~ ^Laravel/[^/]+\.[zZ][iI][pP]$ ]]; then
+  echo "ERROR: --list または Laravel/ 直下のZIPファイルのパスを指定してください。" >&2
+  exit 1
+fi
 USER_DIRECTORY=~
 PROJECT_DIRECTORY="${USER_DIRECTORY}/Docker-Laravel-Pgsql"
 ENV_FILE="${PROJECT_DIRECTORY}/.env"
@@ -51,10 +73,77 @@ if [ "$(docker inspect --format '{{.Id}}' "$COMPOSE_PHP_ID")" != "$LARAVEL_CONTA
 fi
 printf '対象コンテナ: %s (%s)\n' "$LARAVEL_CONTAINER_NAME" "$LARAVEL_CONTAINER_ID"
 
+if [ "$BACKUP_PATH" = --list ]; then
+  docker exec --workdir /var/www/html/laravel "$LARAVEL_CONTAINER_ID" \
+    php artisan app:restore-database-command --list-backups --no-interaction
+  exit $?
+fi
+RESTORE_OPTIONS=()
+if [ -n "$BACKUP_PATH" ]; then
+  RESTORE_OPTIONS=("--backup=$BACKUP_PATH")
+  printf '復元するR2ファイル: %s\n' "$BACKUP_PATH"
+else
+  echo "復元するR2ファイル: 最新世代"
+fi
+
 # 同じバッチ同士の停止・再開の競合も防ぐ。
 exec 9>"${PROJECT_DIRECTORY}/.r2-restore.lock"
 if ! flock -n 9; then
   echo "ERROR: 別のR2復元バッチが実行中です。" >&2
+  exit 1
+fi
+
+# Laravelの設定キャッシュも含めた実効設定を事前確認する。
+# 診断には確認対象の値だけを出力し、パスワード等は出力しない。
+if ! docker exec -i --workdir /var/www/html/laravel "$LARAVEL_CONTAINER_ID" \
+  php /dev/stdin "$R2_RESTORE_DATABASE" "$BACKUP_PATH" <<'PHP'
+<?php
+require 'vendor/autoload.php';
+$app = require 'bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
+$allowedDatabase = $argv[1];
+$host = config('database.connections.pgsql.host');
+$port = config('database.connections.pgsql.port');
+$database = config('database.restore_db_database');
+$checks = [
+    ['Laravel環境 (APP_ENV)', 'local', $app->environment()],
+    ['DBホスト (database.connections.pgsql.host)', 'postgres', $host],
+    ['DBポート (database.connections.pgsql.port)', '5432', (string) $port],
+    ['復元先DB (database.restore_db_database / 期待値: Docker用.envのR2_RESTORE_DATABASE)', $allowedDatabase, $database],
+];
+$hasMismatch = false;
+foreach ($checks as [$label, $expected, $actual]) {
+    if ($actual !== $expected) {
+        $hasMismatch = true;
+    }
+}
+if ($hasMismatch) {
+    fwrite(STDERR, "ERROR: Laravelの環境・DB接続先・復元先DBが許可条件と一致しません。\n");
+    foreach ($checks as [$label, $expected, $actual]) {
+        // JSON表記で未設定(null)・空文字・改行を区別する。
+        fwrite(STDERR, sprintf(
+            "  [%s] %s: 期待値=%s / 実際値=%s\n",
+            $actual === $expected ? '一致' : '不一致',
+            $label,
+            json_encode($expected, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
+            json_encode($actual, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE)
+        ));
+    }
+    fwrite(STDERR, '  Laravel設定キャッシュ: ' . ($app->configurationIsCached() ? 'あり' : 'なし') . "\n");
+    exit(1);
+}
+if ($argv[2] !== '') {
+    $disk = Illuminate\Support\Facades\Storage::disk('r2');
+    if (! in_array($argv[2], $disk->files('Laravel'), true)) {
+        fwrite(STDERR, "ERROR: 指定したR2バックアップが存在しません。\n");
+        exit(1);
+    }
+}
+printf("Laravel環境: local / 復元先: postgres:5432/%s\n", $allowedDatabase);
+PHP
+then
+  echo "ERROR: Laravelの事前確認に失敗しました。サービス停止・復元は実行していません。" >&2
   exit 1
 fi
 
@@ -86,36 +175,9 @@ if [ "$(docker inspect --format '{{.State.Running}}' "$LARAVEL_CONTAINER_ID")" !
   exit 1
 fi
 
-# Laravelの設定キャッシュも含めた実効設定を事前確認する。
-# パスワード等の接続情報は出力しない。
-if ! docker exec -i --workdir /var/www/html/laravel "$LARAVEL_CONTAINER_ID" \
-  php /dev/stdin "$R2_RESTORE_DATABASE" <<'PHP'
-<?php
-require 'vendor/autoload.php';
-$app = require 'bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
-$kernel->bootstrap();
-$allowedDatabase = $argv[1];
-$host = config('database.connections.pgsql.host');
-$port = config('database.connections.pgsql.port');
-$database = config('database.restore_db_database');
-if ($app->environment() !== 'local'
-    || $host !== 'postgres'
-    || (string) $port !== '5432'
-    || $database !== $allowedDatabase) {
-    fwrite(STDERR, "ERROR: Laravelの環境・DB接続先・復元先DBが許可条件と一致しません。\n");
-    exit(1);
-}
-printf("Laravel環境: local / 復元先: postgres:5432/%s\n", $allowedDatabase);
-PHP
-then
-  echo "ERROR: Laravelの事前確認に失敗しました。サービスは停止状態のままです。" >&2
-  exit 1
-fi
-
 # Artisanの終了コードを確認し、成功時のみ停止前に起動していたサービスを再開する。
 if docker exec --workdir /var/www/html/laravel "$LARAVEL_CONTAINER_ID" \
-  php artisan app:restore-database-command --services-stopped --no-interaction; then
+  php artisan app:restore-database-command "${RESTORE_OPTIONS[@]}" --services-stopped --no-interaction; then
   if [ "${#RESTART_SERVICES[@]}" -gt 0 ]; then
     "${COMPOSE[@]}" start "${RESTART_SERVICES[@]}"
   fi

@@ -28,3 +28,5 @@ sessions/
 .memoFolder/
 /AGENTS.md
 /docs/
+/.local-db-copy.lock
+/.r2-restore.lock

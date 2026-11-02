@@ -30,3 +30,4 @@ sessions/
 /docs/
 /.local-db-copy.lock
 /.r2-restore.lock
+/.prod-db-copy.lock

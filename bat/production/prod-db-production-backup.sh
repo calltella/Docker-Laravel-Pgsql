@@ -34,7 +34,7 @@ if [[ ! "$DATABASE_CONTAINER_NAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]]; then
   exit 1
 fi
 
-if [ "$APP_ENV" = "production" ]; then
+if [ "$APP_ENV" = "production" ] && [ "${BACKUP_NONINTERACTIVE:-}" != "1" ]; then
   if ! read -r -p "本番環境のバックアップと古いバックアップファイルの削除を実行します。続行する場合は yes を入力してください: " CONFIRM_EXECUTION || [ "$CONFIRM_EXECUTION" != "yes" ]; then
     echo "処理を中止しました。" >&2
     exit 1

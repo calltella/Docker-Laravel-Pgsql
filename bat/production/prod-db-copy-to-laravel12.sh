@@ -3,11 +3,13 @@
 # production の migrate_apline_base_model を列変換して laravel12 へコピーする。
 # 添付情報は export/pgsql/apline_file_store_backup.sql（PostgreSQL形式）から取得する。
 # 使用例: bash bat/production/prod-db-copy-to-laravel12.sh
+# docker compose / docker-compose を自動判定する。いずれも使用不可なら更新前に中止する。
 # .env の APP_ENV / DATABASE_CONTAINER_NAME が必須。PGDUMP_PASSWORD は任意。
 # production環境でも必ず copy laravel12 の確認入力が必要。引数は受け付けない。
 # ComposeのDB一致確認後、関連サービスを停止し、laravel12 と既存laravel12_BKを退避する。
 # コピー先2テーブル・索引・設定・シーケンスは単一トランザクションで更新する。
-# 対象外へのCASCADEは行わない。外部キーで拒否された場合は更新を中止する。
+# 同じIDは更新、新規IDは追加、コピー元にないIDは削除する。
+# TRUNCATEは使わず、対象外へのCASCADEも行わない。外部キーで拒否された場合は更新を中止する。
 # 成功後にスキーマ/データSQLを保存し、laravel12_BKを再作成して復元を検証する。
 # 失敗時はサービスを停止したままにする。更新コミット後の失敗は自動で戻さない。
 # 作業/退避先: export/pgsql/prod-db-copy.XXXXXXXX（自動削除しない）。
@@ -54,7 +56,17 @@ container_exec() {
 psql_admin() {
   container_exec psql -X -w -U postgres -d postgres -v ON_ERROR_STOP=1 "$@"
 }
-COMPOSE=(docker compose --project-directory "$PROJECT_DIRECTORY" --env-file "$ENV_FILE" -f "${PROJECT_DIRECTORY}/compose.yaml")
+# Composeプラグイン形式と単独コマンド形式の両方に対応する。
+if docker compose version > /dev/null 2>&1; then
+  COMPOSE=(docker compose)
+elif command -v docker-compose > /dev/null 2>&1 && docker-compose version > /dev/null 2>&1; then
+  COMPOSE=(docker-compose)
+else
+  echo "Docker Compose が利用できません。docker compose または docker-compose を導入してください。DB更新・サービス停止は実行していません。" >&2
+  exit 1
+fi
+printf '使用するCompose: %s\n' "${COMPOSE[*]}"
+COMPOSE+=(--project-directory "$PROJECT_DIRECTORY" --env-file "$ENV_FILE" -f "${PROJECT_DIRECTORY}/compose.yaml")
 COMPOSE_DB_ID=$("${COMPOSE[@]}" ps -q postgres)
 if [ -z "$COMPOSE_DB_ID" ]; then
   echo "Compose の postgres サービスが起動していません。" >&2
@@ -131,9 +143,12 @@ CREATE TEMP TABLE stage_base ON COMMIT DROP AS SELECT id, ticket_number, title, 
 CREATE TEMP TABLE stage_files ON COMMIT DROP AS SELECT id, folder, file_path, file_name, ext, size, md5_hash, join_id, download_key, temp_key, created_at, updated_at, deleted_at, content_type FROM public.l12_apline_file_store WITH NO DATA;
 \copy stage_base FROM '$WORK_DIRECTORY/base.csv' WITH (FORMAT csv, HEADER true)
 \copy stage_files FROM '$WORK_DIRECTORY/files.csv' WITH (FORMAT csv, HEADER true)
-TRUNCATE TABLE public.l12_apline_base_model, public.l12_apline_file_store;
-INSERT INTO public.l12_apline_base_model (id, ticket_number, title, status_id, customer_organization, customer_contact_name, reception_content, investigation_result, resolution_content, received_at, started_at, resolved_at, occurred_at, customer_impact, remediation_note, created_at, updated_at, is_received_by_email, accepted_by_user_id, created_by_user_id, updated_by_user_id, request_type_id, failure_component_id, severity_id, business_system_id, emergency_id, impact_id, priority_id, cause_id, resolution_type_id, subsystem_id) OVERRIDING SYSTEM VALUE SELECT * FROM stage_base;
-INSERT INTO public.l12_apline_file_store (id, folder, file_path, file_name, ext, size, md5_hash, join_id, download_key, temp_key, created_at, updated_at, deleted_at, content_type) OVERRIDING SYSTEM VALUE SELECT * FROM stage_files;
+SET CONSTRAINTS ALL DEFERRED;
+LOCK TABLE public.l12_apline_base_model, public.l12_apline_file_store IN EXCLUSIVE MODE;
+INSERT INTO public.l12_apline_base_model (id, ticket_number, title, status_id, customer_organization, customer_contact_name, reception_content, investigation_result, resolution_content, received_at, started_at, resolved_at, occurred_at, customer_impact, remediation_note, created_at, updated_at, is_received_by_email, accepted_by_user_id, created_by_user_id, updated_by_user_id, request_type_id, failure_component_id, severity_id, business_system_id, emergency_id, impact_id, priority_id, cause_id, resolution_type_id, subsystem_id) OVERRIDING SYSTEM VALUE SELECT * FROM stage_base WHERE true ON CONFLICT (id) DO UPDATE SET ticket_number=EXCLUDED.ticket_number, title=EXCLUDED.title, status_id=EXCLUDED.status_id, customer_organization=EXCLUDED.customer_organization, customer_contact_name=EXCLUDED.customer_contact_name, reception_content=EXCLUDED.reception_content, investigation_result=EXCLUDED.investigation_result, resolution_content=EXCLUDED.resolution_content, received_at=EXCLUDED.received_at, started_at=EXCLUDED.started_at, resolved_at=EXCLUDED.resolved_at, occurred_at=EXCLUDED.occurred_at, customer_impact=EXCLUDED.customer_impact, remediation_note=EXCLUDED.remediation_note, created_at=EXCLUDED.created_at, updated_at=EXCLUDED.updated_at, is_received_by_email=EXCLUDED.is_received_by_email, accepted_by_user_id=EXCLUDED.accepted_by_user_id, created_by_user_id=EXCLUDED.created_by_user_id, updated_by_user_id=EXCLUDED.updated_by_user_id, request_type_id=EXCLUDED.request_type_id, failure_component_id=EXCLUDED.failure_component_id, severity_id=EXCLUDED.severity_id, business_system_id=EXCLUDED.business_system_id, emergency_id=EXCLUDED.emergency_id, impact_id=EXCLUDED.impact_id, priority_id=EXCLUDED.priority_id, cause_id=EXCLUDED.cause_id, resolution_type_id=EXCLUDED.resolution_type_id, subsystem_id=EXCLUDED.subsystem_id;
+INSERT INTO public.l12_apline_file_store (id, folder, file_path, file_name, ext, size, md5_hash, join_id, download_key, temp_key, created_at, updated_at, deleted_at, content_type) OVERRIDING SYSTEM VALUE SELECT * FROM stage_files WHERE true ON CONFLICT (id) DO UPDATE SET folder=EXCLUDED.folder, file_path=EXCLUDED.file_path, file_name=EXCLUDED.file_name, ext=EXCLUDED.ext, size=EXCLUDED.size, md5_hash=EXCLUDED.md5_hash, join_id=EXCLUDED.join_id, download_key=EXCLUDED.download_key, temp_key=EXCLUDED.temp_key, created_at=EXCLUDED.created_at, updated_at=EXCLUDED.updated_at, deleted_at=EXCLUDED.deleted_at, content_type=EXCLUDED.content_type;
+DELETE FROM public.l12_apline_file_store AS t WHERE NOT EXISTS (SELECT 1 FROM stage_files AS s WHERE s.id=t.id);
+DELETE FROM public.l12_apline_base_model AS t WHERE NOT EXISTS (SELECT 1 FROM stage_base AS s WHERE s.id=t.id);
 SQL
 for table in l12_apline_base_model l12_apline_file_store; do
   cat >> "$LOCAL_WORK/update.sql" <<SQL

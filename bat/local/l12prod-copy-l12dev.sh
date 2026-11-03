@@ -11,6 +11,8 @@
 # コピー元のCSVは全対象テーブルを一つの読み取りスナップショットで取得する。
 # 関連サービス停止後、開発DB全体を before.dump へ退避してから更新する。
 # 同じIDは更新、新規IDは追加。コピー元にないIDは削除（既存の外部キー定義に従う）。
+# 設定はenv、ホストは(store_id, ip_address)、スキャン状態は(store_id, cidr)で照合する。
+# これらは既存IDを保持し、新規キーにはコピー先の最大IDより大きいIDを割り当てる。
 # TRUNCATE CASCADEは使わず、外部キー等で拒否された場合は全更新をロールバックする。
 # 全テーブルと設定・索引・シーケンスの更新は単一トランザクション。
 # 非遅延外部キーで新規親子の挿入順序が合わない場合も中止し、制約は無効化しない。
@@ -230,6 +232,39 @@ for table in "${TABLES[@]}"; do
   printf 'CREATE TEMP TABLE stage_%s ON COMMIT DROP AS SELECT %s FROM public.%s WITH NO DATA;\n' "$table" "$columns" "$table" >> "$UPDATE_SQL"
   printf "\\copy stage_%s (%s) FROM '%s/%s.csv' WITH (FORMAT csv, HEADER true)\n" "$table" "$columns" "$WORK_DIRECTORY" "$table" >> "$UPDATE_SQL"
   printf 'LOCK TABLE public.%s IN EXCLUSIVE MODE;\n' "$table" >> "$UPDATE_SQL"
+  # DBごとに採番されるテーブルは、業務上の一意キーで既存行を照合する。
+  match_columns=()
+  case "$table" in
+    l12_apline_configuration) match_columns=(env) ;;
+    l12_store_network_hosts) match_columns=(store_id ip_address) ;;
+    l12_store_network_scan_state) match_columns=(store_id cidr) ;;
+  esac
+  if [ "${#match_columns[@]}" -gt 0 ]; then
+    match_keys=$(IFS=,; echo "${match_columns[*]}")
+    match_join= match_null=
+    for key in "${match_columns[@]}"; do
+      match_join+="${match_join:+ AND }t.$key = s.$key"
+      match_null+="${match_null:+ OR }$key IS NULL"
+    done
+    cat >> "$UPDATE_SQL" <<SQL
+DO \$\$
+BEGIN
+  IF EXISTS (SELECT 1 FROM stage_$table WHERE $match_null)
+     OR EXISTS (SELECT 1 FROM stage_$table GROUP BY $match_keys HAVING count(*) > 1) THEN
+    RAISE EXCEPTION 'コピー元の照合キーがNULLまたは重複しています: $table ($match_keys)';
+  END IF;
+END \$\$;
+WITH mapped AS (
+  SELECT s.id AS source_id,
+         COALESCE(t.id, (SELECT COALESCE(MAX(id), 0) FROM public.$table)
+                        + ROW_NUMBER() OVER (ORDER BY s.id)) AS target_id
+  FROM stage_$table AS s
+  LEFT JOIN public.$table AS t ON $match_join
+)
+UPDATE stage_$table AS s SET id = m.target_id
+FROM mapped AS m WHERE m.source_id = s.id;
+SQL
+  fi
   printf 'INSERT INTO public.%s (%s) OVERRIDING SYSTEM VALUE SELECT %s FROM stage_%s WHERE true ON CONFLICT (id) DO UPDATE SET %s;\n' "$table" "$columns" "$columns" "$table" "$assignments" >> "$UPDATE_SQL"
 done
 # 子を先に削除。非遅延制約で順序が合わなければ、安全に全体を中止する。

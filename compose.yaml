@@ -27,6 +27,7 @@ services:
       dockerfile: ./infra/php/Dockerfile
     volumes:
       - ${LARAVEL_DIRECTORY}:/var/www/html/laravel
+      - php_legacy_shared:/var/www/html/shared
     logging: *default-logging
     working_dir: /var/www/html/laravel
     restart: "${DOCKER_RESTART}"
@@ -71,6 +72,7 @@ services:
       dockerfile: ./infra/php/Dockerfile
     volumes:
       - ${LEGACY_PHP_DIRECTORY}:/var/www/html/legacy
+      - php_legacy_shared:/var/www/html/shared
     logging: *default-logging
     working_dir: /var/www/html/legacy
     restart: "${DOCKER_RESTART}"
@@ -150,6 +152,7 @@ networks:
       config:
         - subnet: 192.168.10.0/27
 volumes:
+  php_legacy_shared:
   postgres_groonga3_volume:
     external: true
   postgres_pgadmin4_volume:

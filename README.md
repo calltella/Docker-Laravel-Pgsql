@@ -31,6 +31,19 @@ $ cp .env.example .env
 ```
 $ docker-compose up -d
 ```
+### php と legacy のファイル共有
+
+両コンテナの `/var/www/html/shared` は、同じ名前付きボリューム
+`php_legacy_shared` を使用します。ここに保存したファイルは相互に読み書きできます。
+初回は共有ディレクトリの所有者を設定したイメージをビルドして起動します。
+
+```sh
+docker-compose up -d --build php legacy
+```
+
+データはコンテナを再作成しても保持されます。`docker-compose down -v` は
+この共有ボリュームも削除するため、保存データが必要な場合は実行しないでください。
+
 ### laravelプロジェクト配置
 ```
 $ docker-compose exec laravel bash

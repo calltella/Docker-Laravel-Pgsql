@@ -46,7 +46,8 @@ WORKDIR /var/www/html/laravel
 
 RUN addgroup -g 1000 www && \
     adduser -u 1000 -D -G www www && \
-    chown -R www:www /var/www/html/laravel
+    mkdir -p /var/www/html/shared && \
+    chown -R www:www /var/www/html/laravel /var/www/html/shared
 
 RUN echo "www ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/www \
     && chmod 0440 /etc/sudoers.d/www

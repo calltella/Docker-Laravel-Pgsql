@@ -17,8 +17,11 @@
 # before.dump の手動復元には pg_restore を使う。外部クライアントは事前に停止する。
 # 添付SQLはpostgres権限で検証DBに読み込むため、信頼できるファイルのみ使用する。
 
-set -euo pipefail
+set -Eeuo pipefail
 umask 077
+CURRENT_STEP='初期設定の読み込み'
+# コマンド自体は表示しない（環境変数などの秘密情報を含む可能性がある）。
+trap 'status=$?; printf "エラー: %sで失敗しました（行: %s、終了コード: %s）。\n" "$CURRENT_STEP" "$LINENO" "$status" >&2; exit "$status"' ERR
 if [ "$#" -ne 0 ]; then
   echo "使用方法: $0" >&2
   exit 1
@@ -39,6 +42,7 @@ if [[ ! "$DATABASE_CONTAINER_NAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]]; then
   exit 1
 fi
 CONTAINER_NAME_PATTERN=${DATABASE_CONTAINER_NAME//./\\.}
+CURRENT_STEP='DBコンテナの確認'
 DATABASE_CONTAINER_ID=$(docker ps --no-trunc -q --filter "name=^/${CONTAINER_NAME_PATTERN}$")
 if [ -z "$DATABASE_CONTAINER_ID" ] || [[ "$DATABASE_CONTAINER_ID" == *$'\n'* ]]; then
   echo "起動中の対象コンテナを一意に特定できません: $DATABASE_CONTAINER_NAME" >&2
@@ -67,6 +71,8 @@ else
 fi
 printf '使用するCompose: %s\n' "${COMPOSE[*]}"
 COMPOSE+=(--project-directory "$PROJECT_DIRECTORY" --env-file "$ENV_FILE" -f "${PROJECT_DIRECTORY}/compose.yaml")
+CURRENT_STEP='Composeのpostgresサービスの確認'
+echo "$CURRENT_STEP..."
 COMPOSE_DB_ID=$("${COMPOSE[@]}" ps -q postgres)
 if [ -z "$COMPOSE_DB_ID" ]; then
   echo "Compose の postgres サービスが起動していません。" >&2
@@ -78,23 +84,38 @@ if [ "$COMPOSE_DB_ID" != "$DATABASE_CONTAINER_ID" ]; then
   exit 1
 fi
 
+CURRENT_STEP='多重実行ロックの取得'
 exec 9>"${PROJECT_DIRECTORY}/.prod-db-copy.lock"
 if ! flock -n 9; then
   echo "別の本番DBコピーが実行中です。" >&2
   exit 1
 fi
 INPUT_SQL=/tmp/pgsql/apline_file_store_backup.sql
-container_exec test -r "$INPUT_SQL"
-container_exec test -s "$INPUT_SQL"
+CURRENT_STEP='添付SQLファイルの確認'
+echo "$CURRENT_STEP..."
+if ! container_exec test -r "$INPUT_SQL"; then
+  echo "添付SQLが存在しないか、読み取れません: $INPUT_SQL" >&2
+  echo "ホスト側の ${PROJECT_DIRECTORY}/export/pgsql/apline_file_store_backup.sql とコンテナへのマウントを確認してください。DB更新・サービス停止は実行していません。" >&2
+  exit 1
+fi
+if ! container_exec test -s "$INPUT_SQL"; then
+  echo "添付SQLが空です: $INPUT_SQL。DB更新・サービス停止は実行していません。" >&2
+  exit 1
+fi
 # 元DBとコピー先DBへの接続を更新前に確認する。
+CURRENT_STEP='コピー元DB productionへの接続確認'
+echo "$CURRENT_STEP..."
 container_exec psql -X -w -U postgres -d production -v ON_ERROR_STOP=1 -c 'SELECT 1;' > /dev/null
+CURRENT_STEP='コピー先DB laravel12への接続確認'
+echo "$CURRENT_STEP..."
 container_exec psql -X -w -U postgres -d laravel12 -v ON_ERROR_STOP=1 -c 'SELECT 1;' > /dev/null
+CURRENT_STEP='バックアップDBと稼働サービスの確認'
 BK_EXISTS=$(psql_admin -tAc "SELECT 1 FROM pg_database WHERE datname='laravel12_BK';")
 RUNNING_SERVICES=$("${COMPOSE[@]}" ps --services --status running)
 STOPPED_SERVICES=()
 while IFS= read -r service; do
   case "$service" in
-    nginx|php|legacy|scheduler|apline-sync-worker|pgadmin4) STOPPED_SERVICES+=("$service") ;;
+    nginx|php|legacy|scheduler|scheduler-legacy|apline-sync-worker|pgadmin4) STOPPED_SERVICES+=("$service") ;;
   esac
 done <<< "$RUNNING_SERVICES"
 printf '環境: %s\nコンテナ: %s\nコピー元: production\n更新先: laravel12 / laravel12_BK\n添付SQL: %s\n停止対象: %s\n' \
@@ -103,6 +124,7 @@ if ! read -r -p 'DBを退避してコピーします。続行する場合は cop
   echo "処理を中止しました。" >&2
   exit 1
 fi
+CURRENT_STEP='作業ディレクトリの作成'
 WORK_DIRECTORY=$(container_exec mktemp -d /tmp/pgsql/prod-db-copy.XXXXXXXX)
 LOCAL_WORK=$(mktemp -d)
 VALIDATION_DB="prodcopy_$(date +%Y%m%d%H%M%S)_$$"
@@ -129,6 +151,7 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 # 添付SQLは更新先へ直接読み込まず、一意な検証DBで確認する。
+CURRENT_STEP='検証DBでの添付SQL読み込みとコピー元データの出力'
 container_exec cp -- "$INPUT_SQL" "$WORK_DIRECTORY/input.sql"
 psql_admin -c "CREATE DATABASE \"$VALIDATION_DB\" TEMPLATE template0;"
 VALIDATION_CREATED=true
@@ -184,6 +207,7 @@ WITH renumbered AS (
 UPDATE public.l12_store_search_settings AS t SET sort_order = r.new_sort_order
 FROM renumbered AS r WHERE t.id = r.id;
 SQL
+CURRENT_STEP='関連サービスの停止'
 MAINTENANCE_STARTED=true
 if [ "${#STOPPED_SERVICES[@]}" -gt 0 ]; then
   "${COMPOSE[@]}" stop "${STOPPED_SERVICES[@]}"
@@ -204,14 +228,17 @@ backup_database() {
   container_exec pg_restore --list "$WORK_DIRECTORY/$name.partial" > /dev/null
   container_exec mv -- "$WORK_DIRECTORY/$name.partial" "$WORK_DIRECTORY/$name.dump"
 }
+CURRENT_STEP='更新前DBの退避'
 backup_database laravel12 before
 if [ "$BK_EXISTS" = 1 ]; then
   backup_database laravel12_BK before-bk
 fi
+CURRENT_STEP='コピー先DBの更新'
 docker exec -i "$DATABASE_CONTAINER_ID" tee "$WORK_DIRECTORY/update.sql" < "$LOCAL_WORK/update.sql" > /dev/null
 docker exec -i "${DOCKER_EXEC_OPTIONS[@]}" "$DATABASE_CONTAINER_ID" \
   psql -X -w -U postgres -d laravel12 -v ON_ERROR_STOP=1 --single-transaction -f - < "$LOCAL_WORK/update.sql"
 COMMITTED=true
+CURRENT_STEP='更新後DBの出力と復元検証'
 # 完了したDBを出力し、元バッチ同様にBKで復元検証する。
 container_exec pg_dump -w -U postgres -d laravel12 --schema-only -f "$WORK_DIRECTORY/l12_backup_db_schema_only.partial"
 container_exec test -s "$WORK_DIRECTORY/l12_backup_db_schema_only.partial"
@@ -226,6 +253,7 @@ container_exec pg_restore -w -U postgres -d laravel12_BK --exit-on-error --singl
 container_exec psql -X -w -U postgres -d laravel12_BK -v ON_ERROR_STOP=1 -c 'SELECT 1;' > /dev/null
 psql_admin -c "DROP DATABASE \"$VALIDATION_DB\" WITH (FORCE);"
 VALIDATION_CREATED=false
+CURRENT_STEP='関連サービスの再開'
 if [ "${#STOPPED_SERVICES[@]}" -gt 0 ]; then
   "${COMPOSE[@]}" start "${STOPPED_SERVICES[@]}"
 fi

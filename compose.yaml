@@ -97,6 +97,25 @@ services:
     restart: "${DOCKER_RESTART}"
     depends_on:
       - php   
+  scheduler-legacy:
+    container_name: scheduler-legacy
+    user: "1000:1000"
+    build:
+      context: .
+      dockerfile: ./infra/scheduler/Dockerfile
+    volumes:
+      - ${LEGACY_PHP_DIRECTORY}:/var/www/html/legacy
+      - php_legacy_shared:/var/www/html/shared
+    working_dir: /var/www/html/legacy
+    command: ["php", "artisan", "schedule:work"]
+    environment:
+      - HOME=/var/www/html
+    logging: *default-logging
+    networks:
+      - default
+    restart: "${DOCKER_RESTART}"
+    depends_on:
+      - legacy
   postgres:
     container_name: postgres
     image: groonga/pgroonga:4.0.1-alpine-16
